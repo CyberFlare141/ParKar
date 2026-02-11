@@ -3,6 +3,7 @@
 namespace App\Exceptions;
 
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Throwable;
 
 class Handler extends ExceptionHandler
@@ -30,18 +31,22 @@ class Handler extends ExceptionHandler
 
     public function render($request, Throwable $exception)
     {
-        if ($exception instanceof BadRequestException) {
+        // In debug mode, use the parent renderer so we can see full exception details.
+        if (config('app.debug')) {
+            return parent::render($request, $exception);
+        }
+
+        if ($exception instanceof BadRequestHttpException) {
             return response()->json([
                 'message' => $exception->getMessage(),
             ], 400);
         }
 
-        // Default response for unexpected exceptions
+        // Default response for unexpected exceptions (production-safe)
         return response()->json([
             'error' => true,
             'message' => 'An unexpected error occurred',
         ], 500);
-
     }
 
 }
