@@ -1,0 +1,16 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: ParKar_db
+    restart: always
+    environment:
+      MYSQL_DATABASE: ParKar
+      MYSQL_ROOT_PASSWORD: ParKar
+
+    ports:
+      - "3306:3306"
+    volumes:
+      - parkar_data:/var/lib/mysql
+
+volumes:
+  parkar_data:
