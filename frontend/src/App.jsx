@@ -1,7 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 
 /* ===== PUBLIC ===== */
-import Landing from "./pages/Landing";
+import Landing from "./pages/Landing/Landing";
 import Login from "./pages/Auth/Login";
 import Register from "./pages/Auth/Register";
 import Notifications from "./pages/Notifications";
