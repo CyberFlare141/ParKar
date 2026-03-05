@@ -1,11 +1,43 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import "./Register.css";
 
 const austEmailPattern = /^[a-z]+\.[a-z]+\.\d+@aust\.edu$/i;
+const usernamePattern = /^[a-zA-Z][a-zA-Z0-9._-]{2,29}$/;
+const USERNAME_STORAGE_KEY = "parkar_reserved_usernames";
+
+const getStoredUsernames = () => {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  try {
+    const rawUsernames = window.localStorage.getItem(USERNAME_STORAGE_KEY);
+    const parsed = JSON.parse(rawUsernames ?? "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+const saveUsername = (username) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const usernames = getStoredUsernames();
+  if (!usernames.includes(username)) {
+    window.localStorage.setItem(
+      USERNAME_STORAGE_KEY,
+      JSON.stringify([...usernames, username])
+    );
+  }
+};
 
 const initialValues = {
   studentId: "",
   fullName: "",
+  username: "",
   email: "",
   phone: "",
   password: "",
@@ -27,6 +59,7 @@ export default function Register() {
 
   const validate = () => {
     const nextErrors = {};
+    const normalizedUsername = values.username.trim().toLowerCase();
 
     if (!values.studentId.trim()) {
       nextErrors.studentId = "Student ID is required.";
@@ -34,6 +67,15 @@ export default function Register() {
 
     if (!values.fullName.trim()) {
       nextErrors.fullName = "Full name is required.";
+    }
+
+    if (!values.username.trim()) {
+      nextErrors.username = "Username is required.";
+    } else if (!usernamePattern.test(values.username.trim())) {
+      nextErrors.username =
+        "Username must start with a letter and be 3-30 characters.";
+    } else if (getStoredUsernames().includes(normalizedUsername)) {
+      nextErrors.username = "This username is already taken.";
     }
 
     if (!values.email.trim()) {
@@ -63,30 +105,33 @@ export default function Register() {
     event.preventDefault();
     const nextErrors = validate();
     setErrors(nextErrors);
-    setSubmitted(Object.keys(nextErrors).length === 0);
+    const isValid = Object.keys(nextErrors).length === 0;
+
+    if (isValid) {
+      saveUsername(values.username.trim().toLowerCase());
+    }
+
+    setSubmitted(isValid);
   };
 
   return (
-    <section className="min-h-screen bg-gradient-to-br from-slate-100 via-cyan-50 to-emerald-100 px-4 py-10 sm:px-6 lg:px-8">
-      <div className="mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-5xl items-center justify-center">
-        <div className="w-full max-w-xl rounded-2xl border border-white/70 bg-white/90 p-6 shadow-[0_24px_70px_-28px_rgba(15,23,42,0.45)] backdrop-blur sm:p-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-700">
-            AUST Parking Portal
-          </p>
-          <h1 className="mt-3 text-3xl font-bold text-slate-900">
-            Create Account
-          </h1>
-          <p className="mt-2 text-sm text-slate-600">
+    <section className="register-page">
+      <div className="register-page__container">
+        <div className="register-card">
+          <Link to="/" className="register-card__home-link">
+            {"<-"} Back to Home
+          </Link>
+
+          <p className="register-card__eyebrow">AUST Parking Portal</p>
+          <h1 className="register-card__title">Create Account</h1>
+          <p className="register-card__subtitle">
             Register with your student information.
           </p>
 
-          <form className="mt-6 space-y-5" onSubmit={handleSubmit} noValidate>
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-              <div>
-                <label
-                  htmlFor="studentId"
-                  className="mb-1.5 block text-sm font-medium text-slate-700"
-                >
+          <form className="register-form" onSubmit={handleSubmit} noValidate>
+            <div className="register-form__grid register-form__grid--two">
+              <div className="register-form__field">
+                <label htmlFor="studentId" className="register-form__label">
                   Student ID
                 </label>
                 <input
@@ -96,40 +141,52 @@ export default function Register() {
                   value={values.studentId}
                   onChange={handleChange}
                   placeholder="Enter your student ID"
-                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
+                  className="register-form__input"
                 />
                 {errors.studentId ? (
-                  <p className="mt-1 text-sm text-rose-600">{errors.studentId}</p>
+                  <p className="register-form__error">{errors.studentId}</p>
                 ) : null}
               </div>
 
-              <div>
-                <label
-                  htmlFor="fullName"
-                  className="mb-1.5 block text-sm font-medium text-slate-700"
-                >
-                  Full Name
+              <div className="register-form__field">
+                <label htmlFor="username" className="register-form__label">
+                  Username
                 </label>
                 <input
-                  id="fullName"
-                  name="fullName"
+                  id="username"
+                  name="username"
                   type="text"
-                  value={values.fullName}
+                  value={values.username}
                   onChange={handleChange}
-                  placeholder="Enter your full name"
-                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
+                  placeholder="Choose a unique username"
+                  className="register-form__input"
                 />
-                {errors.fullName ? (
-                  <p className="mt-1 text-sm text-rose-600">{errors.fullName}</p>
+                {errors.username ? (
+                  <p className="register-form__error">{errors.username}</p>
                 ) : null}
               </div>
             </div>
 
-            <div>
-              <label
-                htmlFor="email"
-                className="mb-1.5 block text-sm font-medium text-slate-700"
-              >
+            <div className="register-form__field">
+              <label htmlFor="fullName" className="register-form__label">
+                Full Name
+              </label>
+              <input
+                id="fullName"
+                name="fullName"
+                type="text"
+                value={values.fullName}
+                onChange={handleChange}
+                placeholder="Enter your full name"
+                className="register-form__input"
+              />
+              {errors.fullName ? (
+                <p className="register-form__error">{errors.fullName}</p>
+              ) : null}
+            </div>
+
+            <div className="register-form__field">
+              <label htmlFor="email" className="register-form__label">
                 University Email Address
               </label>
               <input
@@ -139,18 +196,15 @@ export default function Register() {
                 value={values.email}
                 onChange={handleChange}
                 placeholder="name.dept.id@aust.edu"
-                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
+                className="register-form__input"
               />
               {errors.email ? (
-                <p className="mt-1 text-sm text-rose-600">{errors.email}</p>
+                <p className="register-form__error">{errors.email}</p>
               ) : null}
             </div>
 
-            <div>
-              <label
-                htmlFor="phone"
-                className="mb-1.5 block text-sm font-medium text-slate-700"
-              >
+            <div className="register-form__field">
+              <label htmlFor="phone" className="register-form__label">
                 Phone Number
               </label>
               <input
@@ -161,19 +215,16 @@ export default function Register() {
                 value={values.phone}
                 onChange={handleChange}
                 placeholder="Enter phone number"
-                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
+                className="register-form__input"
               />
               {errors.phone ? (
-                <p className="mt-1 text-sm text-rose-600">{errors.phone}</p>
+                <p className="register-form__error">{errors.phone}</p>
               ) : null}
             </div>
 
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-              <div>
-                <label
-                  htmlFor="password"
-                  className="mb-1.5 block text-sm font-medium text-slate-700"
-                >
+            <div className="register-form__grid register-form__grid--two">
+              <div className="register-form__field">
+                <label htmlFor="password" className="register-form__label">
                   Password
                 </label>
                 <input
@@ -183,17 +234,17 @@ export default function Register() {
                   value={values.password}
                   onChange={handleChange}
                   placeholder="Create a password"
-                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
+                  className="register-form__input"
                 />
                 {errors.password ? (
-                  <p className="mt-1 text-sm text-rose-600">{errors.password}</p>
+                  <p className="register-form__error">{errors.password}</p>
                 ) : null}
               </div>
 
-              <div>
+              <div className="register-form__field">
                 <label
                   htmlFor="confirmPassword"
-                  className="mb-1.5 block text-sm font-medium text-slate-700"
+                  className="register-form__label"
                 >
                   Confirm Password
                 </label>
@@ -204,36 +255,30 @@ export default function Register() {
                   value={values.confirmPassword}
                   onChange={handleChange}
                   placeholder="Re-enter your password"
-                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
+                  className="register-form__input"
                 />
                 {errors.confirmPassword ? (
-                  <p className="mt-1 text-sm text-rose-600">
+                  <p className="register-form__error">
                     {errors.confirmPassword}
                   </p>
                 ) : null}
               </div>
             </div>
 
-            <button
-              type="submit"
-              className="w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
-            >
+            <button type="submit" className="register-form__button">
               Sign Up
             </button>
 
             {submitted ? (
-              <p className="text-sm text-emerald-700">
+              <p className="register-form__success">
                 Registration form is valid. Ready for backend integration.
               </p>
             ) : null}
           </form>
 
-          <p className="mt-6 text-center text-sm text-slate-600">
+          <p className="register-card__footer">
             Already have an account?{" "}
-            <Link
-              to="/login"
-              className="font-semibold text-cyan-700 underline-offset-2 hover:underline"
-            >
+            <Link to="/login" className="register-card__link">
               Back to Login
             </Link>
           </p>
