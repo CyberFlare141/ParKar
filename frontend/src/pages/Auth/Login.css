@@ -1,0 +1,197 @@
+@import url("https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap");
+
+.login-page {
+  min-height: 100vh;
+  padding: 2.5rem 1rem;
+  background: #0b0d10;
+  color: #e2e4ea;
+  position: relative;
+  overflow: hidden;
+  font-family: "DM Sans", system-ui, sans-serif;
+}
+
+.login-page::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 56px 56px;
+  -webkit-mask-image: radial-gradient(ellipse 75% 65% at 50% 50%, black 0%, transparent 100%);
+  mask-image: radial-gradient(ellipse 75% 65% at 50% 50%, black 0%, transparent 100%);
+}
+
+.login-page::after {
+  content: "";
+  position: absolute;
+  top: 8%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(760px, 92vw);
+  height: 400px;
+  background: radial-gradient(ellipse at center, rgba(45, 212, 191, 0.12) 0%, transparent 68%);
+  pointer-events: none;
+}
+
+.login-page__container {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 72rem;
+  margin: 0 auto;
+  min-height: calc(100vh - 5rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 28rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+  background: rgba(17, 20, 24, 0.9);
+  padding: 1.5rem;
+  box-shadow: 0 30px 70px -35px rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(14px);
+}
+
+.login-card__home-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-bottom: 0.85rem;
+  color: #9ca3af;
+  font-size: 0.86rem;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.login-card__home-link:hover {
+  color: #2dd4bf;
+}
+
+.login-card__eyebrow {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #2dd4bf;
+}
+
+.login-card__title {
+  margin-top: 0.75rem;
+  font-size: 1.875rem;
+  line-height: 1.2;
+  font-weight: 400;
+  font-family: "Instrument Serif", serif;
+  letter-spacing: -0.02em;
+  color: #e2e4ea;
+}
+
+.login-card__subtitle {
+  margin-top: 0.5rem;
+  font-size: 0.92rem;
+  color: #9ca3af;
+}
+
+.login-form {
+  margin-top: 1.5rem;
+  display: grid;
+  gap: 1.25rem;
+}
+
+.login-form__field {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.login-form__label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #d1d5db;
+}
+
+.login-form__input {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.75rem;
+  background: rgba(11, 13, 16, 0.72);
+  padding: 0.75rem 1rem;
+  font-size: 0.92rem;
+  color: #e2e4ea;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.login-form__input::placeholder {
+  color: #6b7280;
+}
+
+.login-form__input:focus {
+  border-color: #2dd4bf;
+  box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.2);
+}
+
+.login-form__hint {
+  font-size: 0.82rem;
+  color: #6b7280;
+}
+
+.login-form__error {
+  font-size: 0.86rem;
+  color: #fb7185;
+}
+
+.login-form__button {
+  width: 100%;
+  border: none;
+  border-radius: 0.75rem;
+  background: #2dd4bf;
+  color: #0b0d10;
+  padding: 0.78rem 1rem;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.22s ease, box-shadow 0.22s ease, background-color 0.22s ease;
+}
+
+.login-form__button:hover {
+  background: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(45, 212, 191, 0.3);
+}
+
+.login-form__success {
+  font-size: 0.9rem;
+  color: #2dd4bf;
+}
+
+.login-card__footer {
+  margin-top: 1.5rem;
+  text-align: center;
+  font-size: 0.9rem;
+  color: #9ca3af;
+}
+
+.login-card__link {
+  color: #2dd4bf;
+  font-weight: 700;
+  text-underline-offset: 2px;
+}
+
+.login-card__link:hover {
+  text-decoration: underline;
+}
+
+@media (min-width: 640px) {
+  .login-page {
+    padding: 2.5rem 1.5rem;
+  }
+
+  .login-card {
+    padding: 2rem;
+  }
+}
