@@ -6,6 +6,7 @@ import Login from "./pages/Auth/Login";
 import Register from "./pages/Auth/Register";
 import Notifications from "./pages/Notifications";
 import Payment from "./pages/Payment";
+import About from "./pages/About/About";
 
 /* ===== STUDENT ===== */
 import StudentDashboard from "./pages/Student/StudentDashboard";
@@ -32,6 +33,7 @@ function App() {
     <Routes>
       {/* Landing */}
       <Route path="/" element={<Landing />} />
+      <Route path="/about" element={<About />} />
 
       {/* Auth */}
       <Route path="/login" element={<Login />} />

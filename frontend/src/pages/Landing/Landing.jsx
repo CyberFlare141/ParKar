@@ -904,7 +904,7 @@ export default function Landing() {
         </a>
 
         <ul className="pk-navlinks">
-          {[["#pk-features","Features"],["#pk-how","How It Works"],["#pk-permits","Permits"],["#pk-faq","FAQ"]].map(([h,l]) => (
+          {[["#pk-features","Features"],["#pk-how","How It Works"],["#pk-permits","Permits"],["#pk-faq","FAQ"],["/about","About Us"]].map(([h,l]) => (
             <li key={l}><a href={h}>{l}</a></li>
           ))}
         </ul>
@@ -923,7 +923,7 @@ export default function Landing() {
 
       {/* Mobile drawer */}
       <div className={`pk-drawer${menuOpen ? " open" : ""}`}>
-        {[["#pk-features","Features"],["#pk-how","How It Works"],["#pk-permits","Permits"],["#pk-faq","FAQ"]].map(([h,l]) => (
+        {[["#pk-features","Features"],["#pk-how","How It Works"],["#pk-permits","Permits"],["#pk-faq","FAQ"],["/about","About Us"]].map(([h,l]) => (
           <a key={l} href={h} onClick={() => setMenuOpen(false)}>{l}</a>
         ))}
         <Link to="/login"    onClick={() => setMenuOpen(false)} className="btn btn-ghost" style={{ marginTop: "8px" }}>Sign In</Link>
