@@ -1,5 +1,8 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import client from "../../api/client";
+import { ENDPOINTS } from "../../api/endpoints";
 import "./Login.css";
 
 const austEmailPattern = /^[a-z]+\.[a-z]+\.\d+@aust\.edu$/i;
@@ -11,15 +14,21 @@ const initialValues = {
 };
 
 export default function Login() {
+  const navigate = useNavigate();
   const [values, setValues] = useState(initialValues);
   const [errors, setErrors] = useState({});
-  const [submitted, setSubmitted] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [step, setStep] = useState("credentials");
+  const [challengeId, setChallengeId] = useState("");
+  const [purpose, setPurpose] = useState("login");
+  const [feedback, setFeedback] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
     setValues((prev) => ({ ...prev, [name]: value }));
     setErrors((prev) => ({ ...prev, [name]: "" }));
-    setSubmitted(false);
+    setFeedback("");
   };
 
   const validate = () => {
@@ -44,11 +53,76 @@ export default function Login() {
     return nextErrors;
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     const nextErrors = validate();
     setErrors(nextErrors);
-    setSubmitted(Object.keys(nextErrors).length === 0);
+    if (Object.keys(nextErrors).length > 0) {
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setFeedback("");
+      const response = await client.post(ENDPOINTS.LOGIN, values);
+      setChallengeId(response.data.challenge_id);
+      setPurpose(response.data.purpose || "login");
+      setStep("otp");
+      setFeedback(response.data.message || "OTP sent to your registered contact.");
+    } catch (error) {
+      const message =
+        error?.response?.data?.message || "Unable to start login. Please try again.";
+      setFeedback(message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleVerifyOtp = async (event) => {
+    event.preventDefault();
+    if (!/^\d{6}$/.test(otp.trim())) {
+      setFeedback("Enter a valid 6-digit OTP.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setFeedback("");
+      const response = await client.post(ENDPOINTS.VERIFY_OTP, {
+        challenge_id: challengeId,
+        purpose,
+        otp: otp.trim(),
+      });
+
+      localStorage.setItem("auth_token", response.data.token);
+      localStorage.setItem("auth_user", JSON.stringify(response.data.user));
+      setFeedback("Authentication successful.");
+      navigate("/");
+    } catch (error) {
+      const message =
+        error?.response?.data?.message || "OTP verification failed. Please try again.";
+      setFeedback(message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    try {
+      setIsSubmitting(true);
+      setFeedback("");
+      const response = await client.post(ENDPOINTS.RESEND_OTP, {
+        challenge_id: challengeId,
+      });
+      setChallengeId(response.data.challenge_id);
+      setPurpose(response.data.purpose || purpose);
+      setFeedback(response.data.message || "OTP resent.");
+    } catch (error) {
+      const message = error?.response?.data?.message || "Failed to resend OTP.";
+      setFeedback(message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -56,7 +130,7 @@ export default function Login() {
       <div className="login-page__container">
         <div className="login-card">
           <Link to="/" className="login-card__home-link">
-            {"<-"} Back to Home
+            {"<-"} Back to Hom
           </Link>
 
           <p className="login-card__eyebrow">AUST Parking Portal</p>

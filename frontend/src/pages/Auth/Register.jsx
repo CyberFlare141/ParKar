@@ -1,5 +1,10 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import client from "../../api/client";
+import { ENDPOINTS } from "../../api/endpoints";
+
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 import "./Register.css";
 
 const austEmailPattern = /^[a-z]+\.[a-z]+\.\d+@aust\.edu$/i;
@@ -45,16 +50,21 @@ const initialValues = {
 };
 
 export default function Register() {
+  const navigate = useNavigate();
   const [values, setValues] = useState(initialValues);
   const [errors, setErrors] = useState({});
-  const [submitted, setSubmitted] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [step, setStep] = useState("register");
+  const [challengeId, setChallengeId] = useState("");
+  const [feedback, setFeedback] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
     const nextValue = name === "phone" ? value.replace(/\D/g, "") : value;
     setValues((prev) => ({ ...prev, [name]: nextValue }));
     setErrors((prev) => ({ ...prev, [name]: "" }));
-    setSubmitted(false);
+    setFeedback("");
   };
 
   const validate = () => {
@@ -80,8 +90,8 @@ export default function Register() {
 
     if (!values.email.trim()) {
       nextErrors.email = "University email address is required.";
-    } else if (!austEmailPattern.test(values.email.trim())) {
-      nextErrors.email = "Use format: name.dept.id@aust.edu";
+    } else if (!emailPattern.test(values.email.trim())) {
+      nextErrors.email = "Enter a valid email address.";
     }
 
     if (!values.phone.trim()) {
@@ -101,7 +111,7 @@ export default function Register() {
     return nextErrors;
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     const nextErrors = validate();
     setErrors(nextErrors);
@@ -165,7 +175,6 @@ export default function Register() {
                   <p className="register-form__error">{errors.username}</p>
                 ) : null}
               </div>
-            </div>
 
             <div className="register-form__field">
               <label htmlFor="fullName" className="register-form__label">
@@ -228,10 +237,11 @@ export default function Register() {
                   Password
                 </label>
                 <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  value={values.password}
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  inputMode="numeric"
+                  value={values.phone}
                   onChange={handleChange}
                   placeholder="Create a password"
                   className="register-form__input"
@@ -246,7 +256,7 @@ export default function Register() {
                   htmlFor="confirmPassword"
                   className="register-form__label"
                 >
-                  Confirm Password
+                  Enter 6-digit OTP
                 </label>
                 <input
                   id="confirmPassword"
@@ -263,7 +273,6 @@ export default function Register() {
                   </p>
                 ) : null}
               </div>
-            </div>
 
             <button type="submit" className="register-form__button">
               Sign Up
