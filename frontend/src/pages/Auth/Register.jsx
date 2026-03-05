@@ -5,10 +5,44 @@ import client from "../../api/client";
 import { ENDPOINTS } from "../../api/endpoints";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+import "./Register.css";
+
+const austEmailPattern = /^[a-z]+\.[a-z]+\.\d+@aust\.edu$/i;
+const usernamePattern = /^[a-zA-Z][a-zA-Z0-9._-]{2,29}$/;
+const USERNAME_STORAGE_KEY = "parkar_reserved_usernames";
+
+const getStoredUsernames = () => {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  try {
+    const rawUsernames = window.localStorage.getItem(USERNAME_STORAGE_KEY);
+    const parsed = JSON.parse(rawUsernames ?? "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+const saveUsername = (username) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const usernames = getStoredUsernames();
+  if (!usernames.includes(username)) {
+    window.localStorage.setItem(
+      USERNAME_STORAGE_KEY,
+      JSON.stringify([...usernames, username])
+    );
+  }
+};
 
 const initialValues = {
   studentId: "",
   fullName: "",
+  username: "",
   email: "",
   phone: "",
   password: "",
@@ -35,6 +69,7 @@ export default function Register() {
 
   const validate = () => {
     const nextErrors = {};
+    const normalizedUsername = values.username.trim().toLowerCase();
 
     if (!values.studentId.trim()) {
       nextErrors.studentId = "Student ID is required.";
@@ -42,6 +77,15 @@ export default function Register() {
 
     if (!values.fullName.trim()) {
       nextErrors.fullName = "Full name is required.";
+    }
+
+    if (!values.username.trim()) {
+      nextErrors.username = "Username is required.";
+    } else if (!usernamePattern.test(values.username.trim())) {
+      nextErrors.username =
+        "Username must start with a letter and be 3-30 characters.";
+    } else if (getStoredUsernames().includes(normalizedUsername)) {
+      nextErrors.username = "This username is already taken.";
     }
 
     if (!values.email.trim()) {
@@ -71,167 +115,126 @@ export default function Register() {
     event.preventDefault();
     const nextErrors = validate();
     setErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) {
-      return;
+    const isValid = Object.keys(nextErrors).length === 0;
+
+    if (isValid) {
+      saveUsername(values.username.trim().toLowerCase());
     }
 
-    try {
-      setIsSubmitting(true);
-      setFeedback("");
-      const response = await client.post(ENDPOINTS.REGISTER, {
-        fullName: values.fullName.trim(),
-        email: values.email.trim(),
-        phone: values.phone.trim(),
-        studentId: values.studentId.trim(),
-        password: values.password,
-        password_confirmation: values.confirmPassword,
-      });
-
-      setChallengeId(response.data.challenge_id);
-      setStep("otp");
-      setFeedback(response.data.message || "Registration complete. OTP sent.");
-    } catch (error) {
-      const payload = error?.response?.data;
-      const message = payload?.message || "Registration failed. Please try again.";
-      setFeedback(message);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleVerifyOtp = async (event) => {
-    event.preventDefault();
-    if (!/^\d{6}$/.test(otp.trim())) {
-      setFeedback("Enter a valid 6-digit OTP.");
-      return;
-    }
-
-    try {
-      setIsSubmitting(true);
-      setFeedback("");
-      const response = await client.post(ENDPOINTS.VERIFY_OTP, {
-        challenge_id: challengeId,
-        purpose: "register",
-        otp: otp.trim(),
-      });
-
-      localStorage.setItem("auth_token", response.data.token);
-      localStorage.setItem("auth_user", JSON.stringify(response.data.user));
-      setFeedback("Account verified successfully.");
-      navigate("/");
-    } catch (error) {
-      const message =
-        error?.response?.data?.message || "OTP verification failed. Please try again.";
-      setFeedback(message);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleResendOtp = async () => {
-    try {
-      setIsSubmitting(true);
-      setFeedback("");
-      const response = await client.post(ENDPOINTS.RESEND_OTP, {
-        challenge_id: challengeId,
-      });
-      setChallengeId(response.data.challenge_id);
-      setFeedback(response.data.message || "OTP resent.");
-    } catch (error) {
-      const message = error?.response?.data?.message || "Failed to resend OTP.";
-      setFeedback(message);
-    } finally {
-      setIsSubmitting(false);
-    }
+    setSubmitted(isValid);
   };
 
   return (
-    <section className="min-h-screen bg-gradient-to-br from-slate-100 via-cyan-50 to-emerald-100 px-4 py-10 sm:px-6 lg:px-8">
-      <div className="mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-5xl items-center justify-center">
-        <div className="w-full max-w-xl rounded-2xl border border-white/70 bg-white/90 p-6 shadow-[0_24px_70px_-28px_rgba(15,23,42,0.45)] backdrop-blur sm:p-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-700">
-            AUST Parking Portal
-          </p>
-          <h1 className="mt-3 text-3xl font-bold text-slate-900">
-            Create Account
-          </h1>
-          <p className="mt-2 text-sm text-slate-600">
+    <section className="register-page">
+      <div className="register-page__container">
+        <div className="register-card">
+          <Link to="/" className="register-card__home-link">
+            {"<-"} Back to Home
+          </Link>
+
+          <p className="register-card__eyebrow">AUST Parking Portal</p>
+          <h1 className="register-card__title">Create Account</h1>
+          <p className="register-card__subtitle">
             Register with your student information.
           </p>
 
-          {step === "register" ? (
-            <form className="mt-6 space-y-5" onSubmit={handleSubmit} noValidate>
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                <div>
-                  <label
-                    htmlFor="studentId"
-                    className="mb-1.5 block text-sm font-medium text-slate-700"
-                  >
-                    Student ID
-                  </label>
-                  <input
-                    id="studentId"
-                    name="studentId"
-                    type="text"
-                    value={values.studentId}
-                    onChange={handleChange}
-                    placeholder="Enter your student ID"
-                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
-                  />
-                  {errors.studentId ? (
-                    <p className="mt-1 text-sm text-rose-600">{errors.studentId}</p>
-                  ) : null}
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="fullName"
-                    className="mb-1.5 block text-sm font-medium text-slate-700"
-                  >
-                    Full Name
-                  </label>
-                  <input
-                    id="fullName"
-                    name="fullName"
-                    type="text"
-                    value={values.fullName}
-                    onChange={handleChange}
-                    placeholder="Enter your full name"
-                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
-                  />
-                  {errors.fullName ? (
-                    <p className="mt-1 text-sm text-rose-600">{errors.fullName}</p>
-                  ) : null}
-                </div>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="email"
-                  className="mb-1.5 block text-sm font-medium text-slate-700"
-                >
-                  University Email Address
+          <form className="register-form" onSubmit={handleSubmit} noValidate>
+            <div className="register-form__grid register-form__grid--two">
+              <div className="register-form__field">
+                <label htmlFor="studentId" className="register-form__label">
+                  Student ID
                 </label>
                 <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={values.email}
+                  id="studentId"
+                  name="studentId"
+                  type="text"
+                  value={values.studentId}
                   onChange={handleChange}
-                placeholder="Enter your email address"
-                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
+                  placeholder="Enter your student ID"
+                  className="register-form__input"
                 />
-                {errors.email ? (
-                  <p className="mt-1 text-sm text-rose-600">{errors.email}</p>
+                {errors.studentId ? (
+                  <p className="register-form__error">{errors.studentId}</p>
                 ) : null}
               </div>
 
-              <div>
-                <label
-                  htmlFor="phone"
-                  className="mb-1.5 block text-sm font-medium text-slate-700"
-                >
-                  Phone Number
+              <div className="register-form__field">
+                <label htmlFor="username" className="register-form__label">
+                  Username
+                </label>
+                <input
+                  id="username"
+                  name="username"
+                  type="text"
+                  value={values.username}
+                  onChange={handleChange}
+                  placeholder="Choose a unique username"
+                  className="register-form__input"
+                />
+                {errors.username ? (
+                  <p className="register-form__error">{errors.username}</p>
+                ) : null}
+              </div>
+
+            <div className="register-form__field">
+              <label htmlFor="fullName" className="register-form__label">
+                Full Name
+              </label>
+              <input
+                id="fullName"
+                name="fullName"
+                type="text"
+                value={values.fullName}
+                onChange={handleChange}
+                placeholder="Enter your full name"
+                className="register-form__input"
+              />
+              {errors.fullName ? (
+                <p className="register-form__error">{errors.fullName}</p>
+              ) : null}
+            </div>
+
+            <div className="register-form__field">
+              <label htmlFor="email" className="register-form__label">
+                University Email Address
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                value={values.email}
+                onChange={handleChange}
+                placeholder="name.dept.id@aust.edu"
+                className="register-form__input"
+              />
+              {errors.email ? (
+                <p className="register-form__error">{errors.email}</p>
+              ) : null}
+            </div>
+
+            <div className="register-form__field">
+              <label htmlFor="phone" className="register-form__label">
+                Phone Number
+              </label>
+              <input
+                id="phone"
+                name="phone"
+                type="tel"
+                inputMode="numeric"
+                value={values.phone}
+                onChange={handleChange}
+                placeholder="Enter phone number"
+                className="register-form__input"
+              />
+              {errors.phone ? (
+                <p className="register-form__error">{errors.phone}</p>
+              ) : null}
+            </div>
+
+            <div className="register-form__grid register-form__grid--two">
+              <div className="register-form__field">
+                <label htmlFor="password" className="register-form__label">
+                  Password
                 </label>
                 <input
                   id="phone"
@@ -240,121 +243,51 @@ export default function Register() {
                   inputMode="numeric"
                   value={values.phone}
                   onChange={handleChange}
-                  placeholder="Enter phone number"
-                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
+                  placeholder="Create a password"
+                  className="register-form__input"
                 />
-                {errors.phone ? (
-                  <p className="mt-1 text-sm text-rose-600">{errors.phone}</p>
+                {errors.password ? (
+                  <p className="register-form__error">{errors.password}</p>
                 ) : null}
               </div>
 
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                <div>
-                  <label
-                    htmlFor="password"
-                    className="mb-1.5 block text-sm font-medium text-slate-700"
-                  >
-                    Password
-                  </label>
-                  <input
-                    id="password"
-                    name="password"
-                    type="password"
-                    value={values.password}
-                    onChange={handleChange}
-                    placeholder="Create a password"
-                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
-                  />
-                  {errors.password ? (
-                    <p className="mt-1 text-sm text-rose-600">{errors.password}</p>
-                  ) : null}
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="confirmPassword"
-                    className="mb-1.5 block text-sm font-medium text-slate-700"
-                  >
-                    Confirm Password
-                  </label>
-                  <input
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    type="password"
-                    value={values.confirmPassword}
-                    onChange={handleChange}
-                    placeholder="Re-enter your password"
-                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
-                  />
-                  {errors.confirmPassword ? (
-                    <p className="mt-1 text-sm text-rose-600">
-                      {errors.confirmPassword}
-                    </p>
-                  ) : null}
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                {isSubmitting ? "Submitting..." : "Sign Up"}
-              </button>
-            </form>
-          ) : (
-            <form className="mt-6 space-y-5" onSubmit={handleVerifyOtp} noValidate>
-              <div>
+              <div className="register-form__field">
                 <label
-                  htmlFor="otp"
-                  className="mb-1.5 block text-sm font-medium text-slate-700"
+                  htmlFor="confirmPassword"
+                  className="register-form__label"
                 >
                   Enter 6-digit OTP
                 </label>
                 <input
-                  id="otp"
-                  name="otp"
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={6}
-                  value={otp}
-                  onChange={(event) => {
-                    const cleaned = event.target.value.replace(/\D/g, "");
-                    setOtp(cleaned);
-                    setFeedback("");
-                  }}
-                  placeholder="123456"
-                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type="password"
+                  value={values.confirmPassword}
+                  onChange={handleChange}
+                  placeholder="Re-enter your password"
+                  className="register-form__input"
                 />
+                {errors.confirmPassword ? (
+                  <p className="register-form__error">
+                    {errors.confirmPassword}
+                  </p>
+                ) : null}
               </div>
 
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                {isSubmitting ? "Verifying..." : "Verify OTP"}
-              </button>
+            <button type="submit" className="register-form__button">
+              Sign Up
+            </button>
 
-              <button
-                type="button"
-                disabled={isSubmitting}
-                onClick={handleResendOtp}
-                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                Resend OTP
-              </button>
-            </form>
-          )}
+            {submitted ? (
+              <p className="register-form__success">
+                Registration form is valid. Ready for backend integration.
+              </p>
+            ) : null}
+          </form>
 
-          {feedback ? <p className="mt-4 text-sm text-slate-700">{feedback}</p> : null}
-
-          <p className="mt-6 text-center text-sm text-slate-600">
+          <p className="register-card__footer">
             Already have an account?{" "}
-            <Link
-              to="/login"
-              className="font-semibold text-cyan-700 underline-offset-2 hover:underline"
-            >
+            <Link to="/login" className="register-card__link">
               Back to Login
             </Link>
           </p>
