@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import client from "../../api/client";
 import { ENDPOINTS } from "../../api/endpoints";
 
@@ -9,6 +10,7 @@ const initialValues = {
 };
 
 export default function Login() {
+  const navigate = useNavigate();
   const [values, setValues] = useState(initialValues);
   const [errors, setErrors] = useState({});
   const [otp, setOtp] = useState("");
@@ -83,6 +85,7 @@ export default function Login() {
       localStorage.setItem("auth_token", response.data.token);
       localStorage.setItem("auth_user", JSON.stringify(response.data.user));
       setFeedback("Authentication successful.");
+      navigate("/");
     } catch (error) {
       const message =
         error?.response?.data?.message || "OTP verification failed. Please try again.";
