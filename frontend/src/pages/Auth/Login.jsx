@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import client from "../../api/client";
+import { ENDPOINTS } from "../../api/endpoints";
 
 const initialValues = {
   email: "",
@@ -9,13 +11,18 @@ const initialValues = {
 export default function Login() {
   const [values, setValues] = useState(initialValues);
   const [errors, setErrors] = useState({});
-  const [submitted, setSubmitted] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [step, setStep] = useState("credentials");
+  const [challengeId, setChallengeId] = useState("");
+  const [purpose, setPurpose] = useState("login");
+  const [feedback, setFeedback] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
     setValues((prev) => ({ ...prev, [name]: value }));
     setErrors((prev) => ({ ...prev, [name]: "" }));
-    setSubmitted(false);
+    setFeedback("");
   };
 
   const validate = () => {
@@ -32,11 +39,75 @@ export default function Login() {
     return nextErrors;
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     const nextErrors = validate();
     setErrors(nextErrors);
-    setSubmitted(Object.keys(nextErrors).length === 0);
+    if (Object.keys(nextErrors).length > 0) {
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setFeedback("");
+      const response = await client.post(ENDPOINTS.LOGIN, values);
+      setChallengeId(response.data.challenge_id);
+      setPurpose(response.data.purpose || "login");
+      setStep("otp");
+      setFeedback(response.data.message || "OTP sent to your registered contact.");
+    } catch (error) {
+      const message =
+        error?.response?.data?.message || "Unable to start login. Please try again.";
+      setFeedback(message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleVerifyOtp = async (event) => {
+    event.preventDefault();
+    if (!/^\d{6}$/.test(otp.trim())) {
+      setFeedback("Enter a valid 6-digit OTP.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setFeedback("");
+      const response = await client.post(ENDPOINTS.VERIFY_OTP, {
+        challenge_id: challengeId,
+        purpose,
+        otp: otp.trim(),
+      });
+
+      localStorage.setItem("auth_token", response.data.token);
+      localStorage.setItem("auth_user", JSON.stringify(response.data.user));
+      setFeedback("Authentication successful.");
+    } catch (error) {
+      const message =
+        error?.response?.data?.message || "OTP verification failed. Please try again.";
+      setFeedback(message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    try {
+      setIsSubmitting(true);
+      setFeedback("");
+      const response = await client.post(ENDPOINTS.RESEND_OTP, {
+        challenge_id: challengeId,
+      });
+      setChallengeId(response.data.challenge_id);
+      setPurpose(response.data.purpose || purpose);
+      setFeedback(response.data.message || "OTP resent.");
+    } catch (error) {
+      const message = error?.response?.data?.message || "Failed to resend OTP.";
+      setFeedback(message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -51,62 +122,104 @@ export default function Login() {
             Enter your university credentials to continue.
           </p>
 
-          <form className="mt-6 space-y-5" onSubmit={handleSubmit} noValidate>
-            <div>
-              <label
-                htmlFor="email"
-                className="mb-1.5 block text-sm font-medium text-slate-700"
+          {step === "credentials" ? (
+            <form className="mt-6 space-y-5" onSubmit={handleSubmit} noValidate>
+              <div>
+                <label
+                  htmlFor="email"
+                  className="mb-1.5 block text-sm font-medium text-slate-700"
+                >
+                  University Email Address
+                </label>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={values.email}
+                  onChange={handleChange}
+                  placeholder="name.dept.id@aust.edu"
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
+                />
+                {errors.email ? (
+                  <p className="mt-1 text-sm text-rose-600">{errors.email}</p>
+                ) : null}
+              </div>
+
+              <div>
+                <label
+                  htmlFor="password"
+                  className="mb-1.5 block text-sm font-medium text-slate-700"
+                >
+                  Password
+                </label>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  value={values.password}
+                  onChange={handleChange}
+                  placeholder="Enter your password"
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
+                />
+                {errors.password ? (
+                  <p className="mt-1 text-sm text-rose-600">{errors.password}</p>
+                ) : null}
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
               >
-                University Email Address
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                value={values.email}
-                onChange={handleChange}
-                placeholder="name.dept.id@aust.edu"
-                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
-              />
-              {errors.email ? (
-                <p className="mt-1 text-sm text-rose-600">{errors.email}</p>
-              ) : null}
-            </div>
+                {isSubmitting ? "Submitting..." : "Login"}
+              </button>
+            </form>
+          ) : (
+            <form className="mt-6 space-y-5" onSubmit={handleVerifyOtp} noValidate>
+              <div>
+                <label
+                  htmlFor="otp"
+                  className="mb-1.5 block text-sm font-medium text-slate-700"
+                >
+                  Enter 6-digit OTP
+                </label>
+                <input
+                  id="otp"
+                  name="otp"
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={otp}
+                  onChange={(event) => {
+                    const cleaned = event.target.value.replace(/\D/g, "");
+                    setOtp(cleaned);
+                    setFeedback("");
+                  }}
+                  placeholder="123456"
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
+                />
+              </div>
 
-            <div>
-              <label
-                htmlFor="password"
-                className="mb-1.5 block text-sm font-medium text-slate-700"
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
               >
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                value={values.password}
-                onChange={handleChange}
-                placeholder="Enter your password"
-                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
-              />
-              {errors.password ? (
-                <p className="mt-1 text-sm text-rose-600">{errors.password}</p>
-              ) : null}
-            </div>
+                {isSubmitting ? "Verifying..." : "Verify OTP"}
+              </button>
 
-            <button
-              type="submit"
-              className="w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
-            >
-              Login
-            </button>
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={handleResendOtp}
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                Resend OTP
+              </button>
+            </form>
+          )}
 
-            {submitted ? (
-              <p className="text-sm text-emerald-700">
-                Validation passed. Ready for backend integration.
-              </p>
-            ) : null}
-          </form>
+          {feedback ? <p className="mt-4 text-sm text-slate-700">{feedback}</p> : null}
 
           <p className="mt-6 text-center text-sm text-slate-600">
             New here?{" "}

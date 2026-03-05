@@ -9,6 +9,7 @@ services:
       - /var/www/vendor
     depends_on:
       - mysql
+      - mailpit
     networks:
       - parkar
 
@@ -36,6 +37,16 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+    networks:
+      - parkar
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: parkar_mailpit
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
     networks:
       - parkar
 

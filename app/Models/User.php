@@ -17,6 +17,12 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
+        'university_id',
+        'department',
+        'phone',
+        'is_active',
+        'email_verified_at',
     ];
 
     /**
@@ -27,6 +33,11 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+    ];
+
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'is_active' => 'boolean',
     ];
 
     public function posts()
