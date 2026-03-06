@@ -38,6 +38,11 @@ class AuthController extends Controller
         $email = strtolower(trim((string) $payload['email']));
         $name = $payload['name'] ?? $payload['fullName'] ?? '';
         $universityId = $payload['university_id'] ?? $payload['studentId'] ?? null;
+        if (!str_ends_with($email, '@aust.edu')) {
+            throw ValidationException::withMessages([
+                'email' => ['Only @aust.edu email addresses are allowed for registration.'],
+            ]);
+        }
 
         if (($payload['otp_channel'] ?? 'email') === 'phone' && empty($payload['phone'])) {
             throw ValidationException::withMessages([
