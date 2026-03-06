@@ -86,16 +86,21 @@ export default function Profile() {
       try {
         setIsLoading(true);
         setError("");
-        const response = await client.get(ENDPOINTS.PROFILE);
+        const response = await client.get(ENDPOINTS.PROFILE, {
+          skipAuthRedirect: true,
+        });
         const apiUser = response?.data?.user;
         if (apiUser) {
           setUserProfile(mapUserToProfile(apiUser));
           localStorage.setItem("auth_user", JSON.stringify(apiUser));
         }
       } catch (fetchError) {
+        const status = fetchError?.response?.status;
         const message =
-          fetchError?.response?.data?.message ||
-          "Unable to load latest profile info. Showing saved data.";
+          status === 401
+            ? "Session could not be verified right now. Showing saved profile data."
+            : fetchError?.response?.data?.message ||
+              "Unable to load latest profile info. Showing saved data.";
         setError(message);
       } finally {
         setIsLoading(false);
