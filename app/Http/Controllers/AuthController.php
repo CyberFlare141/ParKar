@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Services\Auth\JwtService;
 use App\Http\Services\Auth\OtpService;
 use App\Models\AuthOtp;
 use App\Models\User;
@@ -13,8 +14,10 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    public function __construct(private readonly OtpService $otpService)
-    {
+    public function __construct(
+        private readonly OtpService $otpService,
+        private readonly JwtService $jwtService
+    ) {
     }
 
     public function register(Request $request): JsonResponse
@@ -168,7 +171,7 @@ class AuthController extends Controller
             ->whereNull('invalidated_at')
             ->update(['invalidated_at' => now()]);
 
-        $token = $user->createToken('auth-token')->plainTextToken;
+        $token = $this->jwtService->issueToken($user);
 
         RateLimiter::clear($throttleKey);
 
@@ -182,8 +185,8 @@ class AuthController extends Controller
 
     public function me(Request $request): JsonResponse
     {
+        /** @var \App\Models\User|null $user */
         $user = $request->user();
-
         if (!$user) {
             return response()->json([
                 'message' => 'Unauthenticated.',
@@ -192,6 +195,29 @@ class AuthController extends Controller
 
         return response()->json([
             'user' => $user->only(['id', 'name', 'email', 'role', 'phone', 'university_id', 'department']),
+        ]);
+    }
+
+    public function logout(Request $request): JsonResponse
+    {
+        /** @var \App\Models\User|null $user */
+        $user = $request->user();
+
+        if (!$user) {
+            return response()->json([
+                'message' => 'Unauthenticated.',
+            ], 401);
+        }
+
+        AuthOtp::query()
+            ->where('user_id', $user->id)
+            ->where('purpose', 'login')
+            ->whereNull('consumed_at')
+            ->whereNull('invalidated_at')
+            ->update(['invalidated_at' => now()]);
+
+        return response()->json([
+            'message' => 'Logged out successfully.',
         ]);
     }
 

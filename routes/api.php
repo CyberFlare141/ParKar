@@ -11,13 +11,18 @@ Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
     Route::post('/resend-otp', [AuthController::class, 'resendOtp']);
-    Route::middleware('auth:sanctum')->get('/me', [AuthController::class, 'me']);
+    Route::middleware('jwt.auth')->group(function () {
+        Route::get('/me', [AuthController::class, 'me']);
+        Route::post('/logout', [AuthController::class, 'logout']);
+    });
 });
 
 
-Route::get('/items', [UsersController::class, 'index']);
-Route::get('/items/{id}', [UsersController::class, 'show']);
-Route::post('/items', [UsersController::class, 'store']);
-Route::put('/items/{id}', [UsersController::class, 'update']);
-Route::patch('/items/{id}', [UsersController::class, 'patch']);
-Route::delete('/items/{id}', [UsersController::class, 'destroy']);
+Route::middleware('jwt.auth')->group(function () {
+    Route::get('/items', [UsersController::class, 'index']);
+    Route::get('/items/{id}', [UsersController::class, 'show']);
+    Route::post('/items', [UsersController::class, 'store']);
+    Route::put('/items/{id}', [UsersController::class, 'update']);
+    Route::patch('/items/{id}', [UsersController::class, 'patch']);
+    Route::delete('/items/{id}', [UsersController::class, 'destroy']);
+});

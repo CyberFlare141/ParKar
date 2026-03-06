@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import logo from "../../assets/logo.png";
+import { getAuthUser, getDashboardPathByRole } from "../../auth/session";
 
 /*
  * ParKar Landing Page
@@ -907,7 +908,9 @@ export default function Landing() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [testi,    setTesti]    = useState(0);
-  const [userName, setUserName] = useState(() => getUserDisplayName());
+  
+  const authUser = getAuthUser();
+  const dashboardPath = getDashboardPathByRole(authUser?.role);
   const isLoggedIn = Boolean(userName);
   const navItems = [
     { label: "Features", href: "#pk-features" },
@@ -963,12 +966,15 @@ export default function Landing() {
         </ul>
 
         <div className="pk-nav-right">
-          {isLoggedIn ? (
-            <span className="pk-user-chip">{userName}</span>
+          {authUser ? (
+            <>
+              <Link to={dashboardPath} className="btn btn-ghost">Dashboard</Link>
+              <Link to="/logout" className="btn btn-teal">Logout</Link>
+            </>
           ) : (
             <>
               <Link to="/login" className="btn btn-ghost">Sign In</Link>
-              <Link to="/register" className="btn btn-teal">Get Started -></Link>
+              <Link to="/register" className="btn btn-teal">Get Started →</Link>
             </>
           )}
         </div>
@@ -982,7 +988,7 @@ export default function Landing() {
 
       {/* Mobile drawer */}
       <div className={`pk-drawer${menuOpen ? " open" : ""}`}>
-        {navItems.map((item) =>
+       {navItems.map((item) =>
           item.href ? (
             <a key={item.label} href={item.href} onClick={() => setMenuOpen(false)}>
               {item.label}
@@ -993,14 +999,26 @@ export default function Landing() {
             </Link>
           )
         )}
-        {isLoggedIn ? (
-          <span className="pk-user-chip">{userName}</span>
+        {authUser ? (
+          <>
+            <Link to={dashboardPath} onClick={() => setMenuOpen(false)} className="btn btn-ghost" style={{ marginTop: "8px" }}>
+              Dashboard
+            </Link>
+            <Link to="/logout" onClick={() => setMenuOpen(false)} className="btn btn-teal" style={{ marginTop: "6px" }}>
+              Logout
+            </Link>
+          </>
         ) : (
           <>
-            <Link to="/login" onClick={() => setMenuOpen(false)} className="btn btn-ghost" style={{ marginTop: "8px" }}>Sign In</Link>
-            <Link to="/register" onClick={() => setMenuOpen(false)} className="btn btn-teal" style={{ marginTop: "6px" }}>Get Started -></Link>
-          </>
-        )}
+            <Link to="/login" onClick={() => setMenuOpen(false)} className="btn btn-ghost" style={{ marginTop: "8px" }}>
+              Sign In
+            </Link>
+            <Link to="/register" onClick={() => setMenuOpen(false)} className="btn btn-teal" style={{ marginTop: "6px" }}>
+              Get Started →
+            </Link>
+        
+            </>
+         )}
       </div>
 
       {/* ══ HERO ══ */}
