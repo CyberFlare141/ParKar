@@ -33,156 +33,166 @@ import ReviewApplications from "./pages/Admin/ReviewApplications";
 import AIAnalysis from "./pages/Admin/AIAnalysis";
 import Reports from "./pages/Admin/Reports";
 import AuditLogs from "./pages/Admin/AuditLogs";
+import BackButtonLayout from "./components/BackButtonLayout";
 
 function App() {
   return (
     <Routes>
       {/* Landing */}
       <Route path="/" element={<Landing />} />
-      <Route path="/about" element={<About />} />
-      <Route path="/contact" element={<Contact />} />
-      <Route path="/profile" element={<Profile />} />
+      <Route element={<BackButtonLayout />}>
+        <Route path="/about" element={<About />} />
+        <Route path="/contact" element={<Contact />} />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          }
+        />
 
-      {/* Auth */}
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/logout" element={<Logout />} />
+        {/* Auth */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/logout" element={<Logout />} />
 
-      {/* Shared */}
-      <Route
-        path="/notifications"
-        element={
-          <ProtectedRoute>
-            <Notifications />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/payment"
-        element={
-          <ProtectedRoute>
-            <Payment />
-          </ProtectedRoute>
-        }
-      />
+        {/* Shared */}
+        <Route
+          path="/notifications"
+          element={
+            <ProtectedRoute>
+              <Notifications />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/payment"
+          element={
+            <ProtectedRoute>
+              <Payment />
+            </ProtectedRoute>
+          }
+        />
 
-      {/* Student Routes */}
-      <Route
-        path="/student/dashboard"
-        element={
-          <ProtectedRoute allowedRoles={["student"]}>
-            <StudentDashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/student/apply"
-        element={
-          <ProtectedRoute allowedRoles={["student"]}>
-            <ApplyParking />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/student/history"
-        element={
-          <ProtectedRoute allowedRoles={["student"]}>
-            <ApplicationHistory />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/student/documents"
-        element={
-          <ProtectedRoute allowedRoles={["student"]}>
-            <MyDocuments />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/student/vehicles"
-        element={
-          <ProtectedRoute allowedRoles={["student"]}>
-            <MyVehicles />
-          </ProtectedRoute>
-        }
-      />
+        {/* Student Routes */}
+        <Route
+          path="/student/dashboard"
+          element={
+            <ProtectedRoute allowedRoles={["student"]}>
+              <StudentDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/student/apply"
+          element={
+            <ProtectedRoute allowedRoles={["student"]}>
+              <ApplyParking />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/student/history"
+          element={
+            <ProtectedRoute allowedRoles={["student"]}>
+              <ApplicationHistory />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/student/documents"
+          element={
+            <ProtectedRoute allowedRoles={["student"]}>
+              <MyDocuments />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/student/vehicles"
+          element={
+            <ProtectedRoute allowedRoles={["student"]}>
+              <MyVehicles />
+            </ProtectedRoute>
+          }
+        />
 
-      {/* Teacher Routes */}
-      <Route
-        path="/teacher/dashboard"
-        element={
-          <ProtectedRoute allowedRoles={["teacher"]}>
-            <TeacherDashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/teacher/vehicles"
-        element={
-          <ProtectedRoute allowedRoles={["teacher"]}>
-            <TeacherVehicles />
-          </ProtectedRoute>
-        }
-      />
+        {/* Teacher Routes */}
+        <Route
+          path="/teacher/dashboard"
+          element={
+            <ProtectedRoute allowedRoles={["teacher"]}>
+              <TeacherDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/teacher/vehicles"
+          element={
+            <ProtectedRoute allowedRoles={["teacher"]}>
+              <TeacherVehicles />
+            </ProtectedRoute>
+          }
+        />
 
-      {/* Admin Routes */}
-      <Route
-        path="/admin/dashboard"
-        element={
-          <ProtectedRoute allowedRoles={["admin"]}>
-            <AdminDashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/admin/users"
-        element={
-          <ProtectedRoute allowedRoles={["admin"]}>
-            <ManageUsers />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/admin/semesters"
-        element={
-          <ProtectedRoute allowedRoles={["admin"]}>
-            <ManageSemesters />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/admin/review"
-        element={
-          <ProtectedRoute allowedRoles={["admin"]}>
-            <ReviewApplications />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/admin/ai-analysis"
-        element={
-          <ProtectedRoute allowedRoles={["admin"]}>
-            <AIAnalysis />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/admin/reports"
-        element={
-          <ProtectedRoute allowedRoles={["admin"]}>
-            <Reports />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/admin/audit-logs"
-        element={
-          <ProtectedRoute allowedRoles={["admin"]}>
-            <AuditLogs />
-          </ProtectedRoute>
-        }
-      />
+        {/* Admin Routes */}
+        <Route
+          path="/admin/dashboard"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/users"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <ManageUsers />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/semesters"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <ManageSemesters />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/review"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <ReviewApplications />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/ai-analysis"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AIAnalysis />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/reports"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <Reports />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/audit-logs"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AuditLogs />
+            </ProtectedRoute>
+          }
+        />
+      </Route>
 
       {/* 404 */}
       <Route path="*" element={<Navigate to="/" />} />

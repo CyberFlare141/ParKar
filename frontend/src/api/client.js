@@ -28,7 +28,8 @@ client.interceptors.request.use((config) => {
 client.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error?.response?.status === 401) {
+    const shouldSkipRedirect = Boolean(error?.config?.skipAuthRedirect);
+    if (error?.response?.status === 401 && !shouldSkipRedirect) {
       clearAuthSession();
       redirectToLogin();
     }
