@@ -14,7 +14,7 @@ export default function ApplyParking() {
       <div className="apply-shell">
         <div className="apply-topbar">
           <Link to="/profile" className="back-btn">
-            Back to Profile
+            Profile
           </Link>
         </div>
         <h1 className="apply-title">Parking Registration Form</h1>
