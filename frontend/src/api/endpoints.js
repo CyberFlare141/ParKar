@@ -4,5 +4,6 @@ export const ENDPOINTS = {
   LOGIN: "/auth/login",
   VERIFY_OTP: "/auth/verify-otp",
   RESEND_OTP: "/auth/resend-otp",
+  PROFILE: "/auth/me",
   ITEMS: "/items",
 };

@@ -191,6 +191,18 @@ const STYLES = `
     align-items: center;
     gap: 10px;
   }
+  #pk-root .pk-user-chip {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid rgba(45,212,191,0.45);
+    background: rgba(45,212,191,0.1);
+    color: #b4fff1;
+    border-radius: 100px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    padding: 9px 16px;
+    white-space: nowrap;
+  }
 
   /* Hamburger */
   #pk-root .pk-burger {
@@ -230,6 +242,10 @@ const STYLES = `
     font-size: 1rem;
     padding: 10px 0;
     border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  #pk-root .pk-drawer .pk-user-chip {
+    margin-top: 8px;
+    justify-content: center;
   }
 
   /* ── Buttons ── */
@@ -876,15 +892,46 @@ const STYLES = `
 `;
 
 /* ── Component ────────────────────────────────────────────── */
+function getUserDisplayName() {
+  try {
+    const rawUser = localStorage.getItem("auth_user");
+    if (!rawUser) return "";
+    const user = JSON.parse(rawUser);
+    return user?.fullName || user?.name || user?.studentId || user?.email || "";
+  } catch {
+    return "";
+  }
+}
+
 export default function Landing() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [testi,    setTesti]    = useState(0);
+  const [userName, setUserName] = useState(() => getUserDisplayName());
+  const isLoggedIn = Boolean(userName);
+  const navItems = [
+    { label: "Features", href: "#pk-features" },
+    { label: "How It Works", href: "#pk-how" },
+    { label: "Permits", href: "#pk-permits" },
+    { label: "FAQ", href: "#pk-faq" },
+    { label: "About Us", to: "/about" },
+    ...(isLoggedIn ? [{ label: "Profile", to: "/profile" }] : []),
+  ];
 
   useEffect(() => {
     const h = () => setScrolled(window.scrollY > 40);
     window.addEventListener("scroll", h, { passive: true });
     return () => window.removeEventListener("scroll", h);
+  }, []);
+
+  useEffect(() => {
+    const syncUser = () => setUserName(getUserDisplayName());
+    window.addEventListener("storage", syncUser);
+    window.addEventListener("focus", syncUser);
+    return () => {
+      window.removeEventListener("storage", syncUser);
+      window.removeEventListener("focus", syncUser);
+    };
   }, []);
 
   useEffect(() => {
@@ -904,14 +951,26 @@ export default function Landing() {
         </a>
 
         <ul className="pk-navlinks">
-          {[["#pk-features","Features"],["#pk-how","How It Works"],["#pk-permits","Permits"],["#pk-faq","FAQ"],["/about","About Us"]].map(([h,l]) => (
-            <li key={l}><a href={h}>{l}</a></li>
+          {navItems.map((item) => (
+            <li key={item.label}>
+              {item.href ? (
+                <a href={item.href}>{item.label}</a>
+              ) : (
+                <Link to={item.to}>{item.label}</Link>
+              )}
+            </li>
           ))}
         </ul>
 
         <div className="pk-nav-right">
-          <Link to="/login"    className="btn btn-ghost">Sign In</Link>
-          <Link to="/register" className="btn btn-teal">Get Started →</Link>
+          {isLoggedIn ? (
+            <span className="pk-user-chip">{userName}</span>
+          ) : (
+            <>
+              <Link to="/login" className="btn btn-ghost">Sign In</Link>
+              <Link to="/register" className="btn btn-teal">Get Started -></Link>
+            </>
+          )}
         </div>
 
         <button className="pk-burger" onClick={() => setMenuOpen(o => !o)} aria-label="Toggle menu">
@@ -923,11 +982,25 @@ export default function Landing() {
 
       {/* Mobile drawer */}
       <div className={`pk-drawer${menuOpen ? " open" : ""}`}>
-        {[["#pk-features","Features"],["#pk-how","How It Works"],["#pk-permits","Permits"],["#pk-faq","FAQ"],["/about","About Us"]].map(([h,l]) => (
-          <a key={l} href={h} onClick={() => setMenuOpen(false)}>{l}</a>
-        ))}
-        <Link to="/login"    onClick={() => setMenuOpen(false)} className="btn btn-ghost" style={{ marginTop: "8px" }}>Sign In</Link>
-        <Link to="/register" onClick={() => setMenuOpen(false)} className="btn btn-teal"  style={{ marginTop: "6px" }}>Get Started →</Link>
+        {navItems.map((item) =>
+          item.href ? (
+            <a key={item.label} href={item.href} onClick={() => setMenuOpen(false)}>
+              {item.label}
+            </a>
+          ) : (
+            <Link key={item.label} to={item.to} onClick={() => setMenuOpen(false)}>
+              {item.label}
+            </Link>
+          )
+        )}
+        {isLoggedIn ? (
+          <span className="pk-user-chip">{userName}</span>
+        ) : (
+          <>
+            <Link to="/login" onClick={() => setMenuOpen(false)} className="btn btn-ghost" style={{ marginTop: "8px" }}>Sign In</Link>
+            <Link to="/register" onClick={() => setMenuOpen(false)} className="btn btn-teal" style={{ marginTop: "6px" }}>Get Started -></Link>
+          </>
+        )}
       </div>
 
       {/* ══ HERO ══ */}
