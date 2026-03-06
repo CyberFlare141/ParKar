@@ -1,0 +1,216 @@
+.about-page {
+  min-height: 100vh;
+  background: radial-gradient(circle at 50% 0%, rgba(45, 212, 191, 0.08), transparent 42%),
+    linear-gradient(180deg, #0b0d10 0%, #10141a 100%);
+  color: #e5e7eb;
+}
+
+.about-container {
+  width: min(1120px, 100%);
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.about-hero {
+  padding: 5rem 0 2.5rem;
+  text-align: center;
+}
+
+.about-kicker {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #2dd4bf;
+}
+
+.about-hero h1 {
+  margin: 0.7rem 0 1rem;
+  font-size: clamp(2rem, 4.5vw, 3.2rem);
+  color: #ffffff;
+}
+
+.about-intro {
+  margin: 0 auto;
+  max-width: 780px;
+  color: #cbd5e1;
+  line-height: 1.8;
+}
+
+.about-mission {
+  padding: 1.2rem 0 1.5rem;
+}
+
+.about-mission-card {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(10px);
+  padding: 1.4rem;
+}
+
+.about-mission-card h2 {
+  margin: 0 0 0.8rem;
+  color: #ffffff;
+}
+
+.about-mission-card p {
+  margin: 0.45rem 0;
+  color: #cbd5e1;
+  line-height: 1.75;
+}
+
+.about-team {
+  padding: 1rem 0 3rem;
+}
+
+.about-team h2 {
+  margin: 0;
+  text-align: center;
+  color: #ffffff;
+  font-size: clamp(1.5rem, 3vw, 2.2rem);
+}
+
+.about-team-subtitle {
+  margin: 0.55rem 0 1.5rem;
+  text-align: center;
+  color: #94a3b8;
+}
+
+.about-team-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.about-team-card {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.6);
+  box-shadow: 0 14px 28px -24px rgba(0, 0, 0, 0.8);
+  padding: 1.1rem;
+  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.about-team-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(45, 212, 191, 0.55);
+  box-shadow: 0 20px 32px -24px rgba(45, 212, 191, 0.35);
+}
+
+.about-team-photo {
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(45, 212, 191, 0.45);
+  margin-bottom: 0.7rem;
+}
+
+.about-team-card h3 {
+  margin: 0;
+  color: #ffffff;
+  font-size: 1.02rem;
+}
+
+.about-team-role {
+  margin: 0.4rem 0;
+  color: #2dd4bf;
+  font-weight: 700;
+  font-size: 0.86rem;
+}
+
+.about-team-bio {
+  margin: 0;
+  color: #cbd5e1;
+  line-height: 1.62;
+  font-size: 0.93rem;
+}
+
+.about-team-github {
+  width: 32px;
+  height: 32px;
+  margin-top: 0.8rem;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #cbd5e1;
+  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.about-team-github:hover {
+  border-color: #2dd4bf;
+  color: #2dd4bf;
+  background: rgba(45, 212, 191, 0.12);
+}
+
+.about-team-github svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+.about-cta {
+  padding: 0 0 3.2rem;
+}
+
+.about-cta-inner {
+  border: 1px solid rgba(45, 212, 191, 0.35);
+  border-radius: 16px;
+  background: linear-gradient(120deg, rgba(15, 23, 42, 0.75), rgba(30, 41, 59, 0.55));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.2rem;
+}
+
+.about-cta-inner h2 {
+  margin: 0;
+  color: #ffffff;
+}
+
+.about-cta-inner p {
+  margin: 0.4rem 0 0;
+  color: #cbd5e1;
+}
+
+.about-cta-btn {
+  border-radius: 999px;
+  padding: 0.62rem 1.05rem;
+  background: #2dd4bf;
+  color: #0b0d10;
+  text-decoration: none;
+  font-weight: 700;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.about-cta-btn:hover {
+  transform: translateY(-1px);
+  background: #ffffff;
+  box-shadow: 0 12px 24px -18px rgba(45, 212, 191, 0.7);
+}
+
+@media (max-width: 1040px) {
+  .about-team-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .about-hero {
+    padding-top: 4rem;
+  }
+
+  .about-team-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .about-cta-inner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

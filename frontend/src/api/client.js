@@ -1,5 +1,5 @@
 import axios from "axios";
-import { clearAuthSession, getAuthToken, isTokenExpired } from "../auth/session";
+import { clearAuthSession, getAuthToken } from "../auth/session";
 
 const resolvedBaseUrl =
   import.meta.env.VITE_API_URL?.trim() || "http://localhost:8000/api";
@@ -17,12 +17,6 @@ function redirectToLogin() {
 client.interceptors.request.use((config) => {
   const token = getAuthToken();
   if (!token) {
-    return config;
-  }
-
-  if (isTokenExpired(token)) {
-    clearAuthSession();
-    redirectToLogin();
     return config;
   }
 

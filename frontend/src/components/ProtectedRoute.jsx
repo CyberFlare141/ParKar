@@ -4,7 +4,6 @@ import {
   getAuthToken,
   getAuthUser,
   getDashboardPathByRole,
-  isTokenExpired,
 } from "../auth/session";
 
 export default function ProtectedRoute({ children, allowedRoles = null }) {
@@ -12,16 +11,16 @@ export default function ProtectedRoute({ children, allowedRoles = null }) {
   const token = getAuthToken();
   const user = getAuthUser();
 
-  if (!token || !user) {
-    return <Navigate to="/login" replace state={{ from: location }} />;
-  }
-
-  if (isTokenExpired(token)) {
-    clearAuthSession();
+  if (!token) {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
   if (Array.isArray(allowedRoles) && allowedRoles.length > 0) {
+    if (!user) {
+      clearAuthSession();
+      return <Navigate to="/login" replace state={{ from: location }} />;
+    }
+
     if (!allowedRoles.includes(user.role)) {
       return <Navigate to={getDashboardPathByRole(user.role)} replace />;
     }

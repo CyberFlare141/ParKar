@@ -36,15 +36,21 @@ export function isTokenExpired(token) {
   if (!token) return true;
 
   const parts = token.split(".");
-  if (parts.length !== 3) return true;
+  if (parts.length !== 3) {
+    // Some environments may use non-JWT tokens; let server-side auth decide.
+    return false;
+  }
 
   try {
     const normalized = parts[1].replace(/-/g, "+").replace(/_/g, "/");
     const padded = normalized + "=".repeat((4 - (normalized.length % 4)) % 4);
     const payload = JSON.parse(atob(padded));
-    if (!payload?.exp) return true;
+    if (!payload?.exp || typeof payload.exp !== "number") {
+      return false;
+    }
     return Date.now() >= payload.exp * 1000;
   } catch {
-    return true;
+    // If client cannot decode token reliably, avoid false logout redirects.
+    return false;
   }
 }

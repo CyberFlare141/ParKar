@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ContactController;
 use App\Http\Controllers\UsersController;
 
 Route::get('/health', fn () => response()->json(['status' => 'API working']));
@@ -17,6 +18,7 @@ Route::prefix('auth')->group(function () {
     });
 });
 
+Route::post('/contact', [ContactController::class, 'send']);
 
 Route::middleware('jwt.auth')->group(function () {
     Route::get('/items', [UsersController::class, 'index']);

@@ -8,6 +8,7 @@ import Logout from "./pages/Auth/Logout";
 import Notifications from "./pages/Notifications";
 import Payment from "./pages/Payment";
 import About from "./pages/About/About";
+import Contact from "./pages/Contact/Contact";
 import Profile from "./pages/Profile";
 
 /* ===== AUTH GUARD =====*/
@@ -39,6 +40,7 @@ function App() {
       {/* Landing */}
       <Route path="/" element={<Landing />} />
       <Route path="/about" element={<About />} />
+      <Route path="/contact" element={<Contact />} />
       <Route path="/profile" element={<Profile />} />
 
       {/* Auth */}

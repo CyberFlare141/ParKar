@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import logo from "../../assets/logo.png";
-import { getAuthUser, getDashboardPathByRole } from "../../auth/session";
+import { getAuthToken, getAuthUser, getDashboardPathByRole } from "../../auth/session";
 
 /*
  * ParKar Landing Page
@@ -922,7 +922,8 @@ export default function Landing() {
   const [userName, setUserName] = useState(getUserDisplayName());
   
   const authUser = getAuthUser();
-  const isLoggedIn = Boolean(authUser || userName);
+  const token = getAuthToken();
+  const isLoggedIn = Boolean(token && (authUser || userName));
   const applyPath = getApplyPathByRole(authUser?.role);
   const vehiclePath = getVehiclePathByRole(authUser?.role);
   const navItems = [
@@ -1273,4 +1274,3 @@ function FAQList() {
     </div>
   );
 }
-
