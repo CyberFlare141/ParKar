@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import logo from "../../assets/logo.png";
+import { getAuthUser, getDashboardPathByRole } from "../../auth/session";
 
 /*
  * ParKar Landing Page
@@ -880,6 +881,8 @@ export default function Landing() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [testi,    setTesti]    = useState(0);
+  const authUser = getAuthUser();
+  const dashboardPath = getDashboardPathByRole(authUser?.role);
 
   useEffect(() => {
     const h = () => setScrolled(window.scrollY > 40);
@@ -910,8 +913,17 @@ export default function Landing() {
         </ul>
 
         <div className="pk-nav-right">
-          <Link to="/login"    className="btn btn-ghost">Sign In</Link>
-          <Link to="/register" className="btn btn-teal">Get Started →</Link>
+          {authUser ? (
+            <>
+              <Link to={dashboardPath} className="btn btn-ghost">Dashboard</Link>
+              <Link to="/logout" className="btn btn-teal">Logout</Link>
+            </>
+          ) : (
+            <>
+              <Link to="/login" className="btn btn-ghost">Sign In</Link>
+              <Link to="/register" className="btn btn-teal">Get Started →</Link>
+            </>
+          )}
         </div>
 
         <button className="pk-burger" onClick={() => setMenuOpen(o => !o)} aria-label="Toggle menu">
@@ -926,8 +938,25 @@ export default function Landing() {
         {[["#pk-features","Features"],["#pk-how","How It Works"],["#pk-permits","Permits"],["#pk-faq","FAQ"]].map(([h,l]) => (
           <a key={l} href={h} onClick={() => setMenuOpen(false)}>{l}</a>
         ))}
-        <Link to="/login"    onClick={() => setMenuOpen(false)} className="btn btn-ghost" style={{ marginTop: "8px" }}>Sign In</Link>
-        <Link to="/register" onClick={() => setMenuOpen(false)} className="btn btn-teal"  style={{ marginTop: "6px" }}>Get Started →</Link>
+        {authUser ? (
+          <>
+            <Link to={dashboardPath} onClick={() => setMenuOpen(false)} className="btn btn-ghost" style={{ marginTop: "8px" }}>
+              Dashboard
+            </Link>
+            <Link to="/logout" onClick={() => setMenuOpen(false)} className="btn btn-teal" style={{ marginTop: "6px" }}>
+              Logout
+            </Link>
+          </>
+        ) : (
+          <>
+            <Link to="/login" onClick={() => setMenuOpen(false)} className="btn btn-ghost" style={{ marginTop: "8px" }}>
+              Sign In
+            </Link>
+            <Link to="/register" onClick={() => setMenuOpen(false)} className="btn btn-teal" style={{ marginTop: "6px" }}>
+              Get Started →
+            </Link>
+          </>
+        )}
       </div>
 
       {/* ══ HERO ══ */}
