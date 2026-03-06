@@ -180,6 +180,21 @@ class AuthController extends Controller
         ]);
     }
 
+    public function me(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if (!$user) {
+            return response()->json([
+                'message' => 'Unauthenticated.',
+            ], 401);
+        }
+
+        return response()->json([
+            'user' => $user->only(['id', 'name', 'email', 'role', 'phone', 'university_id', 'department']),
+        ]);
+    }
+
     public function resendOtp(Request $request): JsonResponse
     {
         $payload = $request->validate([
