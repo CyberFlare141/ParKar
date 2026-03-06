@@ -7,6 +7,10 @@ import Register from "./pages/Auth/Register";
 import Logout from "./pages/Auth/Logout";
 import Notifications from "./pages/Notifications";
 import Payment from "./pages/Payment";
+import About from "./pages/About/About";
+import Profile from "./pages/Profile";
+
+/* ===== AUTH GUARD =====*/
 import ProtectedRoute from "./components/ProtectedRoute";
 
 /* ===== STUDENT ===== */
@@ -34,6 +38,8 @@ function App() {
     <Routes>
       {/* Landing */}
       <Route path="/" element={<Landing />} />
+      <Route path="/about" element={<About />} />
+      <Route path="/profile" element={<Profile />} />
 
       {/* Auth */}
       <Route path="/login" element={<Login />} />
