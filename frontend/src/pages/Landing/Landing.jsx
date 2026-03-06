@@ -904,14 +904,27 @@ function getUserDisplayName() {
   }
 }
 
+function getVehiclePathByRole(role) {
+  if (role === "teacher") return "/teacher/vehicles";
+  if (role === "student") return "/student/vehicles";
+  return getDashboardPathByRole(role);
+}
+
+function getApplyPathByRole(role) {
+  if (role === "student") return "/student/apply";
+  return getDashboardPathByRole(role);
+}
+
 export default function Landing() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [testi,    setTesti]    = useState(0);
+  const [userName, setUserName] = useState(getUserDisplayName());
   
   const authUser = getAuthUser();
-  const dashboardPath = getDashboardPathByRole(authUser?.role);
-  const isLoggedIn = Boolean(userName);
+  const isLoggedIn = Boolean(authUser || userName);
+  const applyPath = getApplyPathByRole(authUser?.role);
+  const vehiclePath = getVehiclePathByRole(authUser?.role);
   const navItems = [
     { label: "Features", href: "#pk-features" },
     { label: "How It Works", href: "#pk-how" },
@@ -968,7 +981,7 @@ export default function Landing() {
         <div className="pk-nav-right">
           {authUser ? (
             <>
-              <Link to={dashboardPath} className="btn btn-ghost">Dashboard</Link>
+              <Link to={getDashboardPathByRole(authUser?.role)} className="btn btn-ghost">Dashboard</Link>
               <Link to="/logout" className="btn btn-teal">Logout</Link>
             </>
           ) : (
@@ -1001,11 +1014,11 @@ export default function Landing() {
         )}
         {authUser ? (
           <>
-            <Link to={dashboardPath} onClick={() => setMenuOpen(false)} className="btn btn-ghost" style={{ marginTop: "8px" }}>
-              Dashboard
+            <Link to={applyPath} onClick={() => setMenuOpen(false)} className="btn btn-teal" style={{ marginTop: "8px" }}>
+              Apply for Permit
             </Link>
-            <Link to="/logout" onClick={() => setMenuOpen(false)} className="btn btn-teal" style={{ marginTop: "6px" }}>
-              Logout
+            <Link to={vehiclePath} onClick={() => setMenuOpen(false)} className="btn btn-ghost" style={{ marginTop: "6px" }}>
+              Vehicle
             </Link>
           </>
         ) : (
@@ -1042,8 +1055,17 @@ export default function Landing() {
             </p>
 
             <div className="pk-hero-btns pk-a4">
-              <Link to="/register" className="btn btn-teal  btn-lg">Apply for a Permit →</Link>
-              <Link to="/login"    className="btn btn-ghost btn-lg">Sign In</Link>
+              {authUser ? (
+                <>
+                  <Link to={applyPath} className="btn btn-teal btn-lg">Apply for a Permit</Link>
+                  <Link to={vehiclePath} className="btn btn-ghost btn-lg">Vehicle</Link>
+                </>
+              ) : (
+                <>
+                  <Link to="/register" className="btn btn-teal btn-lg">Apply for a Permit</Link>
+                  <Link to="/login" className="btn btn-ghost btn-lg">Sign In</Link>
+                </>
+              )}
             </div>
 
             <div className="pk-stats pk-a5">
@@ -1251,3 +1273,4 @@ function FAQList() {
     </div>
   );
 }
+

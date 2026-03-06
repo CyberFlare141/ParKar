@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import client from "../../api/client";
 import { ENDPOINTS } from "../../api/endpoints";
-import { getDashboardPathByRole, setAuthSession } from "../../auth/session";
+import { setAuthSession } from "../../auth/session";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -118,7 +118,7 @@ export default function Register() {
 
       setAuthSession(response.data.token, response.data.user);
       setFeedback("Account verified successfully.");
-      navigate(getDashboardPathByRole(response.data?.user?.role), { replace: true });
+      navigate("/", { replace: true });
     } catch (error) {
       const message =
         error?.response?.data?.message || "OTP verification failed. Please try again.";
