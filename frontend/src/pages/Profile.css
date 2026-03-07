@@ -15,6 +15,10 @@
   @apply mb-5 flex items-center justify-between gap-4;
 }
 
+.profile-header-actions {
+  @apply flex items-center gap-2.5;
+}
+
 .profile-header-row h1 {
   @apply m-0 text-[clamp(1.35rem,2.5vw,2rem)] font-bold text-white;
 }
@@ -147,6 +151,10 @@
   .profile-header-row,
   .vehicles-header {
     @apply flex-col items-stretch;
+  }
+
+  .profile-header-actions {
+    @apply flex-col;
   }
 
   .user-card {

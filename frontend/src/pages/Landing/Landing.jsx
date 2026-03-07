@@ -932,7 +932,12 @@ export default function Landing() {
     { label: "Permits", href: "#pk-permits" },
     { label: "FAQ", href: "#pk-faq" },
     { label: "About Us", to: "/about" },
-    ...(isLoggedIn ? [{ label: "Profile", to: "/profile" }] : []),
+    ...(isLoggedIn
+      ? [
+          { label: "Profile", to: "/profile" },
+          { label: "Notifications", to: "/notifications" },
+        ]
+      : []),
   ];
 
   useEffect(() => {
