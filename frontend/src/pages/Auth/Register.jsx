@@ -8,7 +8,7 @@ import { setAuthSession } from "../../auth/session";
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const initialValues = {
-  studentId: "",
+  id: "",
   fullName: "",
   email: "",
   phone: "",
@@ -37,8 +37,8 @@ export default function Register() {
   const validate = () => {
     const nextErrors = {};
 
-    if (!values.studentId.trim()) {
-      nextErrors.studentId = "Student ID is required.";
+    if (!values.id.trim()) {
+      nextErrors.id = "ID is required.";
     }
 
     if (!values.fullName.trim()) {
@@ -83,7 +83,7 @@ export default function Register() {
         fullName: values.fullName.trim(),
         email: values.email.trim().toLowerCase(),
         phone: values.phone.trim(),
-        studentId: values.studentId.trim(),
+        university_id: values.id.trim(),
         password: values.password,
         password_confirmation: values.confirmPassword,
       });
@@ -164,22 +164,22 @@ export default function Register() {
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                 <div>
                   <label
-                    htmlFor="studentId"
-                    className="mb-1.5 block text-sm font-medium text-slate-700"
-                  >
-                    Student ID
-                  </label>
-                  <input
-                    id="studentId"
-                    name="studentId"
-                    type="text"
-                    value={values.studentId}
-                    onChange={handleChange}
-                    placeholder="Enter your student ID"
-                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
-                  />
-                  {errors.studentId ? (
-                    <p className="mt-1 text-sm text-rose-600">{errors.studentId}</p>
+                  htmlFor="id"
+                  className="mb-1.5 block text-sm font-medium text-slate-700"
+                >
+                  ID
+                </label>
+                <input
+                  id="id"
+                  name="id"
+                  type="text"
+                  value={values.id}
+                  onChange={handleChange}
+                  placeholder="Enter your ID"
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
+                />
+                  {errors.id ? (
+                    <p className="mt-1 text-sm text-rose-600">{errors.id}</p>
                   ) : null}
                 </div>
 
