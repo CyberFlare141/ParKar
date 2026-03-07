@@ -1,12 +1,17 @@
 const AUTH_TOKEN_KEY = "auth_token";
 const AUTH_USER_KEY = "auth_user";
+const AUTH_ROLE_KEY = "auth_role";
+
+const LEGACY_TOKEN_KEY = "token";
+const LEGACY_USER_KEY = "user";
+const LEGACY_ROLE_KEY = "role";
 
 export function getAuthToken() {
-  return localStorage.getItem(AUTH_TOKEN_KEY);
+  return localStorage.getItem(AUTH_TOKEN_KEY) || localStorage.getItem(LEGACY_TOKEN_KEY);
 }
 
 export function getAuthUser() {
-  const raw = localStorage.getItem(AUTH_USER_KEY);
+  const raw = localStorage.getItem(AUTH_USER_KEY) || localStorage.getItem(LEGACY_USER_KEY);
   if (!raw) return null;
 
   try {
@@ -16,20 +21,46 @@ export function getAuthUser() {
   }
 }
 
+export function getAuthRole() {
+  const user = getAuthUser();
+  if (user?.role) {
+    return String(user.role).toLowerCase();
+  }
+
+  const persistedRole =
+    localStorage.getItem(AUTH_ROLE_KEY) || localStorage.getItem(LEGACY_ROLE_KEY);
+
+  return persistedRole ? persistedRole.toLowerCase() : null;
+}
+
 export function setAuthSession(token, user) {
+  const resolvedRole = String(user?.role || "").toLowerCase();
+
   localStorage.setItem(AUTH_TOKEN_KEY, token);
   localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
+  localStorage.setItem(AUTH_ROLE_KEY, resolvedRole);
+
+  localStorage.setItem(LEGACY_TOKEN_KEY, token);
+  localStorage.setItem(LEGACY_USER_KEY, JSON.stringify(user));
+  localStorage.setItem(LEGACY_ROLE_KEY, resolvedRole);
 }
 
 export function clearAuthSession() {
   localStorage.removeItem(AUTH_TOKEN_KEY);
   localStorage.removeItem(AUTH_USER_KEY);
+  localStorage.removeItem(AUTH_ROLE_KEY);
+
+  localStorage.removeItem(LEGACY_TOKEN_KEY);
+  localStorage.removeItem(LEGACY_USER_KEY);
+  localStorage.removeItem(LEGACY_ROLE_KEY);
 }
 
 export function getDashboardPathByRole(role) {
-  if (role === "admin") return "/admin/dashboard";
-  if (role === "teacher") return "/teacher/dashboard";
-  return "/student/dashboard";
+  const normalizedRole = String(role || "").toLowerCase();
+  if (normalizedRole === "admin") return "/admin/dashboard";
+  if (normalizedRole === "teacher") return "/teacher/dashboard";
+  if (normalizedRole === "student") return "/student/dashboard";
+  return "/";
 }
 
 export function isTokenExpired(token) {

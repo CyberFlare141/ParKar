@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\UsersController;
+use Illuminate\Http\Request;
 
 Route::get('/health', fn () => response()->json(['status' => 'API working']));
 
@@ -27,4 +28,31 @@ Route::middleware('jwt.auth')->group(function () {
     Route::put('/items/{id}', [UsersController::class, 'update']);
     Route::patch('/items/{id}', [UsersController::class, 'patch']);
     Route::delete('/items/{id}', [UsersController::class, 'destroy']);
+});
+
+Route::prefix('admin')->middleware(['jwt.auth', 'role.admin'])->group(function () {
+    Route::get('/dashboard', function (Request $request) {
+        return response()->json([
+            'message' => 'Admin access granted.',
+            'user' => $request->user()?->only(['id', 'name', 'email', 'role']),
+        ]);
+    });
+});
+
+Route::prefix('teacher')->middleware(['jwt.auth', 'role.teacher'])->group(function () {
+    Route::get('/dashboard', function (Request $request) {
+        return response()->json([
+            'message' => 'Teacher access granted.',
+            'user' => $request->user()?->only(['id', 'name', 'email', 'role']),
+        ]);
+    });
+});
+
+Route::prefix('student')->middleware(['jwt.auth', 'role.student'])->group(function () {
+    Route::get('/dashboard', function (Request $request) {
+        return response()->json([
+            'message' => 'Student access granted.',
+            'user' => $request->user()?->only(['id', 'name', 'email', 'role']),
+        ]);
+    });
 });

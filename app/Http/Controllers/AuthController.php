@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Services\Auth\JwtService;
 use App\Http\Services\Auth\OtpService;
+use App\Http\Services\Auth\RoleDetectionService;
 use App\Models\AuthOtp;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -16,7 +17,8 @@ class AuthController extends Controller
 {
     public function __construct(
         private readonly OtpService $otpService,
-        private readonly JwtService $jwtService
+        private readonly JwtService $jwtService,
+        private readonly RoleDetectionService $roleDetectionService
     ) {
     }
 
@@ -31,18 +33,24 @@ class AuthController extends Controller
             'university_id' => ['nullable', 'string', 'max:50'],
             'studentId' => ['nullable', 'string', 'max:50'],
             'department' => ['nullable', 'string', 'max:100'],
-            'role' => ['nullable', 'in:student,teacher,admin'],
             'otp_channel' => ['nullable', 'in:email,phone'],
         ]);
 
         $email = strtolower(trim((string) $payload['email']));
         $name = $payload['name'] ?? $payload['fullName'] ?? '';
         $universityId = $payload['university_id'] ?? $payload['studentId'] ?? null;
-        if (!str_ends_with($email, '@aust.edu')) {
+        $allowListedEmails = array_unique(array_merge(
+            config('auth_roles.admin_emails', []),
+            config('auth_roles.teacher_emails', [])
+        ));
+        $isAllowListedEmail = in_array($email, $allowListedEmails, true);
+        if (!str_ends_with($email, '@aust.edu') && !$isAllowListedEmail) {
             throw ValidationException::withMessages([
-                'email' => ['Only @aust.edu email addresses are allowed for registration.'],
+                'email' => ['Only @aust.edu emails are allowed unless the address is listed in ADMIN_EMAILS/TEACHER_EMAILS.'],
             ]);
         }
+
+        $detectedRole = $this->detectUserRoleOrFail($email);
 
         if (($payload['otp_channel'] ?? 'email') === 'phone' && empty($payload['phone'])) {
             throw ValidationException::withMessages([
@@ -57,7 +65,7 @@ class AuthController extends Controller
             'phone' => $payload['phone'] ?? null,
             'university_id' => $universityId,
             'department' => $payload['department'] ?? null,
-            'role' => $payload['role'] ?? 'student',
+            'role' => $detectedRole,
             'is_active' => true,
             'email_verified_at' => null,
         ]);
@@ -101,6 +109,8 @@ class AuthController extends Controller
             ], 403);
         }
 
+        $detectedRole = $this->syncUserRoleFromEmail($user);
+
         if (($payload['otp_channel'] ?? 'email') === 'phone' && empty($user->phone)) {
             throw ValidationException::withMessages([
                 'otp_channel' => ['Phone OTP is unavailable because your account has no phone number.'],
@@ -123,6 +133,7 @@ class AuthController extends Controller
             'purpose' => $purpose,
             'channel' => $challenge['channel'],
             'expires_at' => $challenge['expires_at'],
+            'detected_role' => $detectedRole,
         ]);
     }
 
@@ -176,6 +187,7 @@ class AuthController extends Controller
             ->whereNull('invalidated_at')
             ->update(['invalidated_at' => now()]);
 
+        $this->syncUserRoleFromEmail($user);
         $token = $this->jwtService->issueToken($user);
 
         RateLimiter::clear($throttleKey);
@@ -274,5 +286,28 @@ class AuthController extends Controller
             'channel' => $challenge['channel'],
             'expires_at' => $challenge['expires_at'],
         ]);
+    }
+
+    private function syncUserRoleFromEmail(User $user): string
+    {
+        $detectedRole = $this->detectUserRoleOrFail((string) $user->email);
+        if ($user->role !== $detectedRole) {
+            $user->forceFill(['role' => $detectedRole])->save();
+            $user->refresh();
+        }
+
+        return $detectedRole;
+    }
+
+    private function detectUserRoleOrFail(string $email): string
+    {
+        $role = $this->roleDetectionService->detectUserRole($email);
+        if ($role === null) {
+            throw ValidationException::withMessages([
+                'email' => ['Unable to determine user role from email format.'],
+            ]);
+        }
+
+        return $role;
     }
 }

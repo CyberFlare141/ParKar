@@ -6,7 +6,6 @@ import { ENDPOINTS } from "../../api/endpoints";
 import { setAuthSession } from "../../auth/session";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const austEmailPattern = /^[^\s@]+@aust\.edu$/i;
 
 const initialValues = {
   studentId: "",
@@ -50,8 +49,6 @@ export default function Register() {
       nextErrors.email = "University email address is required.";
     } else if (!emailPattern.test(values.email.trim())) {
       nextErrors.email = "Enter a valid email address.";
-    } else if (!austEmailPattern.test(values.email.trim())) {
-      nextErrors.email = "Only @aust.edu email is allowed.";
     }
 
     if (!values.phone.trim()) {

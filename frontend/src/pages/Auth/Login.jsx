@@ -57,10 +57,20 @@ export default function Login() {
       setChallengeId(response.data.challenge_id);
       setPurpose(response.data.purpose || "login");
       setStep("otp");
-      setFeedback(response.data.message || "OTP sent to your registered contact.");
+      const debugOtp = response?.data?.debug_otp;
+      setFeedback(
+        debugOtp
+          ? `OTP sent. Debug OTP (APP_DEBUG only): ${debugOtp}`
+          : response.data.message || "OTP sent to your registered contact."
+      );
     } catch (error) {
+      const firstFieldError = error?.response?.data?.errors
+        ? Object.values(error.response.data.errors)?.[0]?.[0]
+        : null;
       const message =
-        error?.response?.data?.message || "Unable to start login. Please try again.";
+        firstFieldError ||
+        error?.response?.data?.message ||
+        "Unable to start login. Please try again.";
       setFeedback(message);
     } finally {
       setIsSubmitting(false);
@@ -104,10 +114,18 @@ export default function Login() {
       });
       setChallengeId(response.data.challenge_id);
       setPurpose(response.data.purpose || purpose);
-      setFeedback(response.data.message || "OTP resent.");
+      const debugOtp = response?.data?.debug_otp;
+      setFeedback(
+        debugOtp
+          ? `OTP resent. Debug OTP (APP_DEBUG only): ${debugOtp}`
+          : response.data.message || "OTP resent."
+      );
     } catch (error) {
+      const firstFieldError = error?.response?.data?.errors
+        ? Object.values(error.response.data.errors)?.[0]?.[0]
+        : null;
       const message = error?.response?.data?.message || "Failed to resend OTP.";
-      setFeedback(message);
+      setFeedback(firstFieldError || message);
     } finally {
       setIsSubmitting(false);
     }
@@ -119,7 +137,6 @@ export default function Login() {
         <div className="w-full max-w-md rounded-2xl border border-white/70 bg-white/90 p-6 shadow-[0_24px_70px_-28px_rgba(15,23,42,0.45)] backdrop-blur sm:p-8">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-700">
             AUST Parking Portal
-            //hello
           </p>
           <h1 className="mt-3 text-3xl font-bold text-slate-900">Log In</h1>
           <p className="mt-2 text-sm text-slate-600">
