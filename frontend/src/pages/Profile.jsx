@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import client from "../api/client";
 import { ENDPOINTS } from "../api/endpoints";
 import "./Profile.css";
@@ -115,9 +116,14 @@ export default function Profile() {
       <section className="profile-shell">
         <div className="profile-header-row">
           <h1>Campus Parking Profile</h1>
-          <button type="button" className="action-btn primary-btn">
-            Edit Profile
-          </button>
+          <div className="profile-header-actions">
+            <Link to="/notifications" className="action-btn tertiary-btn">
+              Notifications
+            </Link>
+            <button type="button" className="action-btn primary-btn">
+              Edit Profile
+            </button>
+          </div>
         </div>
         {isLoading ? <p className="profile-feedback">Loading profile...</p> : null}
         {error ? <p className="profile-feedback error">{error}</p> : null}
