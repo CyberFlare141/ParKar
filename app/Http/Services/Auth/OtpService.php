@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use Throwable;
 
 class OtpService
 {
@@ -36,13 +37,19 @@ class OtpService
             'meta' => ['ip_generated' => request()?->ip()],
         ]);
 
-        $this->dispatchOtp($user, $otpCode, $purpose, $channel);
+        $delivery = $this->dispatchOtp($user, $otpCode, $purpose, $channel);
 
-        return [
+        $response = [
             'challenge_id' => $record->challenge_id,
             'expires_at' => $record->expires_at?->toIso8601String(),
             'channel' => $record->channel,
         ];
+
+        if (!empty($delivery['debug_otp'])) {
+            $response['debug_otp'] = $delivery['debug_otp'];
+        }
+
+        return $response;
     }
 
     public function verifyChallenge(string $challengeId, string $otp, string $purpose): array
@@ -116,7 +123,7 @@ class OtpService
         return (string) random_int(100000, 999999);
     }
 
-    private function dispatchOtp(User $user, string $otpCode, string $purpose, string $channel): void
+    private function dispatchOtp(User $user, string $otpCode, string $purpose, string $channel): array
     {
         $expiry = (int) config('auth.otp.expiry_minutes', 5);
         $subject = $purpose === 'register' ? 'Account Verification OTP' : 'Login Verification OTP';
@@ -130,11 +137,36 @@ class OtpService
                 'purpose' => $purpose,
                 'otp' => $otpCode,
             ]);
-            return;
+            return ['sent' => true];
         }
 
-        Mail::raw($body, function ($message) use ($user, $subject): void {
-            $message->to($user->email)->subject($subject);
-        });
+        try {
+            Mail::raw($body, function ($message) use ($user, $subject): void {
+                $message->to($user->email)->subject($subject);
+            });
+            return ['sent' => true];
+        } catch (Throwable $exception) {
+            Log::error('Failed to send OTP email.', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'purpose' => $purpose,
+                'error' => $exception->getMessage(),
+            ]);
+
+            if (config('app.debug')) {
+                Log::warning('OTP email failed; returning debug OTP in response because APP_DEBUG=true.', [
+                    'user_id' => $user->id,
+                    'purpose' => $purpose,
+                    'otp' => $otpCode,
+                ]);
+
+                return [
+                    'sent' => false,
+                    'debug_otp' => $otpCode,
+                ];
+            }
+
+            throw $exception;
+        }
     }
 }
