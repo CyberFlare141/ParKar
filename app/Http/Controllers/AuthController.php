@@ -39,11 +39,7 @@ class AuthController extends Controller
         $email = strtolower(trim((string) $payload['email']));
         $name = $payload['name'] ?? $payload['fullName'] ?? '';
         $universityId = $payload['university_id'] ?? $payload['studentId'] ?? null;
-        $allowListedEmails = array_unique(array_merge(
-            config('auth_roles.admin_emails', []),
-            config('auth_roles.teacher_emails', [])
-        ));
-        $isAllowListedEmail = in_array($email, $allowListedEmails, true);
+        $isAllowListedEmail = $this->roleDetectionService->isAllowListedEmail($email);
         if (!str_ends_with($email, '@aust.edu') && !$isAllowListedEmail) {
             throw ValidationException::withMessages([
                 'email' => ['Only @aust.edu emails are allowed unless the address is listed in ADMIN_EMAILS/TEACHER_EMAILS.'],

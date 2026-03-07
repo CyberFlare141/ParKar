@@ -4,6 +4,14 @@ namespace App\Http\Services\Auth;
 
 class RoleDetectionService
 {
+    public function isAllowListedEmail(string $email): bool
+    {
+        $normalizedEmail = strtolower(trim($email));
+        $allowListedEmails = config('auth_roles.allowlisted_emails', []);
+
+        return in_array($normalizedEmail, $allowListedEmails, true);
+    }
+
     public function detectUserRole(string $email): ?string
     {
         $normalizedEmail = strtolower(trim($email));
@@ -17,7 +25,7 @@ class RoleDetectionService
             return 'teacher';
         }
 
-        if (!str_ends_with($normalizedEmail, '@aust.edu')) {
+        if (!$this->isAllowListedEmail($normalizedEmail) && !str_ends_with($normalizedEmail, '@aust.edu')) {
             return null;
         }
 
