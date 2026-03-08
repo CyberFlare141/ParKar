@@ -2,7 +2,10 @@
 
 namespace App\Exceptions;
 
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Throwable;
 
 class Handler extends ExceptionHandler
@@ -30,17 +33,33 @@ class Handler extends ExceptionHandler
 
     public function render($request, Throwable $exception)
     {
-        if ($exception instanceof BadRequestException) {
+        if ($request->expectsJson()) {
+            if ($exception instanceof ValidationException) {
+                return response()->json([
+                    'message' => $exception->getMessage(),
+                    'errors' => $exception->errors(),
+                ], $exception->status);
+            }
+
+            if ($exception instanceof AuthenticationException) {
+                return response()->json([
+                    'message' => 'Unauthenticated.',
+                ], 401);
+            }
+
+            if ($exception instanceof HttpExceptionInterface) {
+                return response()->json([
+                    'message' => $exception->getMessage() ?: 'Request failed.',
+                ], $exception->getStatusCode());
+            }
+
             return response()->json([
-                'message' => $exception->getMessage(),
-            ], 400);
+                'error' => true,
+                'message' => config('app.debug') ? $exception->getMessage() : 'An unexpected error occurred',
+            ], 500);
         }
 
-        // Default response for unexpected exceptions
-        return response()->json([
-            'error' => true,
-            'message' => 'An unexpected error occurred',
-        ], 500);
+        return parent::render($request, $exception);
 
     }
 

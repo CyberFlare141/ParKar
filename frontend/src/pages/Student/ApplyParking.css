@@ -1,0 +1,136 @@
+@reference "../../index.css";
+
+.apply-page {
+  @apply min-h-screen px-4 py-10 md:px-6 lg:px-8;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(45, 212, 191, 0.12), transparent 40%),
+    linear-gradient(180deg, #0b0d10 0%, #11151b 100%);
+}
+
+.apply-shell {
+  @apply mx-auto w-full max-w-6xl rounded-2xl border border-white/10 p-6 md:p-8;
+  @apply shadow-[0_20px_50px_-30px_rgba(0,0,0,0.85)] backdrop-blur-sm;
+  background: rgba(17, 20, 24, 0.85);
+}
+
+.apply-title {
+  @apply text-center text-2xl font-semibold text-white md:text-3xl;
+}
+
+.apply-topbar {
+  @apply mb-4 flex justify-start;
+}
+
+.back-btn {
+  @apply inline-flex items-center rounded-lg border border-teal-300/35 bg-teal-400/10 px-4 py-2 text-sm font-semibold text-teal-300 transition;
+}
+
+.back-btn:hover {
+  @apply border-teal-300/65 bg-teal-400/20;
+}
+
+.apply-form {
+  @apply mt-8 space-y-8;
+}
+
+.apply-top-grid {
+  @apply grid grid-cols-1 gap-6 md:grid-cols-2;
+}
+
+.apply-section {
+  @apply rounded-xl border border-white/10 p-5;
+  background: rgba(11, 13, 16, 0.65);
+}
+
+.apply-section h2 {
+  @apply m-0 text-lg font-semibold text-white;
+}
+
+.register-group {
+  @apply mt-4 space-y-3;
+}
+
+.register-group p {
+  @apply m-0 text-sm font-medium text-slate-300;
+}
+
+.register-options {
+  @apply space-y-2;
+}
+
+.radio-row {
+  @apply flex items-center gap-2 text-sm text-slate-300;
+}
+
+.radio-row input[type="radio"] {
+  accent-color: #2dd4bf;
+}
+
+.field-grid {
+  @apply mt-5 grid grid-cols-1 gap-4;
+}
+
+.field {
+  @apply space-y-1.5 text-sm;
+}
+
+.field span {
+  @apply font-medium text-slate-300;
+}
+
+.field input,
+.field textarea {
+  @apply w-full rounded-xl border border-white/15 bg-slate-900/70 px-4 py-2.5 text-slate-100 outline-none transition;
+}
+
+.field input::placeholder,
+.field textarea::placeholder {
+  @apply text-slate-500;
+}
+
+.field input:focus,
+.field textarea:focus {
+  @apply border-teal-400 ring-2 ring-teal-400/20;
+}
+
+.uploads-grid {
+  @apply mt-5 grid grid-cols-1 gap-3 md:grid-cols-2;
+}
+
+.upload-control {
+  @apply block;
+}
+
+.upload-control input[type="file"] {
+  @apply sr-only;
+}
+
+.upload-control span {
+  @apply flex w-full cursor-pointer items-center justify-center rounded-xl border border-dashed border-teal-300/40 px-4 py-3 text-center text-sm font-medium text-teal-300 transition;
+  background: rgba(15, 23, 42, 0.7);
+}
+
+.upload-control span:hover {
+  @apply border-teal-300/70 bg-teal-400/10;
+}
+
+.apply-actions {
+  @apply flex flex-col items-center justify-center gap-4 pt-1;
+}
+
+.submit-btn {
+  @apply rounded-xl px-12 py-3 text-base font-semibold text-slate-950 transition focus:outline-none focus:ring-4 focus:ring-teal-300/30;
+  @apply bg-teal-400 shadow-[0_10px_26px_-12px_rgba(45,212,191,0.8)];
+}
+
+.submit-btn:hover {
+  @apply -translate-y-0.5 bg-white;
+}
+
+.nda-row {
+  @apply flex items-center gap-2 text-sm text-slate-300;
+}
+
+.nda-row input[type="checkbox"] {
+  accent-color: #2dd4bf;
+}

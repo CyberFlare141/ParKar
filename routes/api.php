@@ -1,28 +1,58 @@
 <?php
 
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ContactController;
 use App\Http\Controllers\UsersController;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
 
-/*
-|--------------------------------------------------------------------------
-| API Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register API routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "api" middleware group. Make something great!
-|
-*/
+Route::get('/health', fn () => response()->json(['status' => 'API working']));
 
-// Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-//     return $request->user();
-// });
+Route::prefix('auth')->group(function () {
+    Route::post('/register', [AuthController::class, 'register']);
+    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
+    Route::post('/resend-otp', [AuthController::class, 'resendOtp']);
+    Route::middleware('jwt.auth')->group(function () {
+        Route::get('/me', [AuthController::class, 'me']);
+        Route::post('/logout', [AuthController::class, 'logout']);
+    });
+});
 
-// Dummy CRUD operations for items using UsersController
-Route::get('/items', [UsersController::class, 'index']);
-Route::get('/items/{id}', [UsersController::class, 'show']);
-Route::post('/items', [UsersController::class, 'store']);
-Route::put('/items/{id}', [UsersController::class, 'update']);
-Route::patch('/items/{id}', [UsersController::class, 'patch']);
-Route::delete('/items/{id}', [UsersController::class, 'destroy']);
+Route::post('/contact', [ContactController::class, 'send']);
+
+Route::middleware('jwt.auth')->group(function () {
+    Route::get('/items', [UsersController::class, 'index']);
+    Route::get('/items/{id}', [UsersController::class, 'show']);
+    Route::post('/items', [UsersController::class, 'store']);
+    Route::put('/items/{id}', [UsersController::class, 'update']);
+    Route::patch('/items/{id}', [UsersController::class, 'patch']);
+    Route::delete('/items/{id}', [UsersController::class, 'destroy']);
+});
+
+Route::prefix('admin')->middleware(['jwt.auth', 'role.admin'])->group(function () {
+    Route::get('/dashboard', function (Request $request) {
+        return response()->json([
+            'message' => 'Admin access granted.',
+            'user' => $request->user()?->only(['id', 'name', 'email', 'role']),
+        ]);
+    });
+});
+
+Route::prefix('teacher')->middleware(['jwt.auth', 'role.teacher'])->group(function () {
+    Route::get('/dashboard', function (Request $request) {
+        return response()->json([
+            'message' => 'Teacher access granted.',
+            'user' => $request->user()?->only(['id', 'name', 'email', 'role']),
+        ]);
+    });
+});
+
+Route::prefix('student')->middleware(['jwt.auth', 'role.student'])->group(function () {
+    Route::get('/dashboard', function (Request $request) {
+        return response()->json([
+            'message' => 'Student access granted.',
+            'user' => $request->user()?->only(['id', 'name', 'email', 'role']),
+        ]);
+    });
+});
