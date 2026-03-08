@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\StudentParkingApplicationController;
 use App\Http\Controllers\UsersController;
 use Illuminate\Http\Request;
 
@@ -55,4 +56,6 @@ Route::prefix('student')->middleware(['jwt.auth', 'role.student'])->group(functi
             'user' => $request->user()?->only(['id', 'name', 'email', 'role']),
         ]);
     });
+    Route::get('/semesters', [StudentParkingApplicationController::class, 'semesters']);
+    Route::post('/parking-applications', [StudentParkingApplicationController::class, 'store']);
 });

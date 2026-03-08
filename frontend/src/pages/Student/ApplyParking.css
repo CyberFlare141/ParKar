@@ -79,16 +79,19 @@
 }
 
 .field input,
+.field select,
 .field textarea {
   @apply w-full rounded-xl border border-white/15 bg-slate-900/70 px-4 py-2.5 text-slate-100 outline-none transition;
 }
 
 .field input::placeholder,
+.field select::placeholder,
 .field textarea::placeholder {
   @apply text-slate-500;
 }
 
 .field input:focus,
+.field select:focus,
 .field textarea:focus {
   @apply border-teal-400 ring-2 ring-teal-400/20;
 }
@@ -98,7 +101,7 @@
 }
 
 .upload-control {
-  @apply block;
+  @apply block space-y-1.5;
 }
 
 .upload-control input[type="file"] {
@@ -127,10 +130,26 @@
   @apply -translate-y-0.5 bg-white;
 }
 
+.submit-btn:disabled {
+  @apply cursor-not-allowed opacity-70;
+}
+
 .nda-row {
   @apply flex items-center gap-2 text-sm text-slate-300;
 }
 
 .nda-row input[type="checkbox"] {
   accent-color: #2dd4bf;
+}
+
+.field-error {
+  @apply m-0 text-xs text-rose-400;
+}
+
+.upload-error {
+  @apply px-1;
+}
+
+.apply-feedback {
+  @apply mt-4 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200;
 }

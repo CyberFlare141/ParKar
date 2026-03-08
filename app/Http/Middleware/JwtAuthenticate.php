@@ -8,6 +8,7 @@ use Closure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class JwtAuthenticate
 {
@@ -18,11 +19,11 @@ class JwtAuthenticate
     public function handle(Request $request, Closure $next): mixed
     {
         $authorization = (string) $request->header('Authorization', '');
-        if (!str_starts_with($authorization, 'Bearer ')) {
+        if (!preg_match('/^\s*Bearer\s+(.+)$/i', $authorization, $matches)) {
             return $this->unauthorized('Missing Bearer token.');
         }
 
-        $token = trim(substr($authorization, 7));
+        $token = trim((string) ($matches[1] ?? ''));
         if ($token === '') {
             return $this->unauthorized('Missing Bearer token.');
         }
@@ -51,6 +52,13 @@ class JwtAuthenticate
 
     private function unauthorized(string $message): JsonResponse
     {
+        Log::warning('JWT authentication failed.', [
+            'message' => $message,
+            'path' => request()?->path(),
+            'ip' => request()?->ip(),
+            'has_authorization_header' => request()?->hasHeader('Authorization'),
+        ]);
+
         return response()->json([
             'message' => $message,
         ], 401);

@@ -23,6 +23,11 @@ COPY . .
 RUN composer install --no-interaction --prefer-dist --optimize-autoloader
 
 RUN chown -R www-data:www-data /var/www
+RUN { \
+    echo "upload_max_filesize=10M"; \
+    echo "post_max_size=25M"; \
+    echo "max_file_uploads=20"; \
+} > /usr/local/etc/php/conf.d/uploads.ini
 
 EXPOSE 9000
 CMD ["php-fpm"]

@@ -8,4 +8,12 @@ use Illuminate\Database\Eloquent\Model;
 class Document extends Model
 {
     use HasFactory;
+
+    protected $fillable = [
+        'user_id',
+        'document_type',
+        'file_path',
+        'expiry_date',
+        'is_verified',
+    ];
 }

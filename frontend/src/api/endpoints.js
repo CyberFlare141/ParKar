@@ -9,4 +9,6 @@ export const ENDPOINTS = {
   LOGOUT: "/auth/logout",
   CONTACT: "/contact",
   ITEMS: "/items",
+  STUDENT_SEMESTERS: "/student/semesters",
+  STUDENT_PARKING_APPLICATIONS: "/student/parking-applications",
 };
