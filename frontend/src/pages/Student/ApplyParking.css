@@ -1,57 +1,218 @@
 @reference "../../index.css";
 
+/* ── Fonts ──────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap');
+
+/* ── Design Tokens ──────────────────────────────────────────── */
+:root {
+  --teal:        #2dd4bf;
+  --teal-dim:    rgba(45, 212, 191, 0.18);
+  --teal-glow:   rgba(45, 212, 191, 0.55);
+  --teal-line:   rgba(45, 212, 191, 0.25);
+  --bg-deep:     #070a0e;
+  --bg-shell:    rgba(10, 14, 20, 0.92);
+  --bg-section:  rgba(7, 10, 14, 0.8);
+  --border:      rgba(255, 255, 255, 0.07);
+  --text-hi:     #f0f6ff;
+  --text-mid:    #94a3b8;
+  --text-lo:     #475569;
+  --red:         #f43f5e;
+  --mono:        'Space Mono', monospace;
+  --sans:        'Syne', sans-serif;
+  --radius-sm:   8px;
+  --radius-md:   12px;
+  --radius-lg:   18px;
+}
+
+/* ── Page Shell ─────────────────────────────────────────────── */
 .apply-page {
-  @apply min-h-screen px-4 py-10 md:px-6 lg:px-8;
+  @apply min-h-screen px-4 py-12 md:px-8 lg:px-12;
+  font-family: var(--sans);
   background:
-    radial-gradient(circle at 50% 0%, rgba(45, 212, 191, 0.12), transparent 40%),
-    linear-gradient(180deg, #0b0d10 0%, #11151b 100%);
+    radial-gradient(ellipse 80% 40% at 50% -10%, rgba(45, 212, 191, 0.1) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 60% at 90% 80%,  rgba(45, 212, 191, 0.05) 0%, transparent 50%),
+    linear-gradient(175deg, #080c12 0%, #07090e 50%, #060810 100%);
+  position: relative;
+  overflow-x: hidden;
 }
 
+/* Animated scanline overlay */
+.apply-page::before {
+  content: '';
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.08) 2px,
+    rgba(0, 0, 0, 0.08) 4px
+  );
+  z-index: 0;
+}
+
+/* Corner accents on the page */
+.apply-page::after {
+  content: '';
+  pointer-events: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 320px; height: 320px;
+  background: radial-gradient(circle at top left, rgba(45, 212, 191, 0.06), transparent 70%);
+  z-index: 0;
+}
+
+/* ── Main Container ─────────────────────────────────────────── */
 .apply-shell {
-  @apply mx-auto w-full max-w-6xl rounded-2xl border border-white/10 p-6 md:p-8;
-  @apply shadow-[0_20px_50px_-30px_rgba(0,0,0,0.85)] backdrop-blur-sm;
-  background: rgba(17, 20, 24, 0.85);
+  @apply mx-auto w-full max-w-6xl p-6 md:p-10;
+  position: relative;
+  z-index: 1;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--bg-shell);
+  backdrop-filter: blur(20px) saturate(1.4);
+  box-shadow:
+    0 0 0 1px rgba(45, 212, 191, 0.06),
+    0 30px 80px -20px rgba(0, 0, 0, 0.9),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+
+  /* Clipped corner — top right */
+  clip-path: polygon(
+    0 0,
+    calc(100% - 32px) 0,
+    100% 32px,
+    100% 100%,
+    0 100%
+  );
 }
 
+/* Teal corner accent line */
+.apply-shell::before {
+  content: '';
+  position: absolute;
+  top: -1px; right: 30px;
+  width: 36px; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--teal));
+  border-radius: 1px;
+}
+.apply-shell::after {
+  content: '';
+  position: absolute;
+  top: 30px; right: -1px;
+  width: 1px; height: 36px;
+  background: linear-gradient(180deg, var(--teal), transparent);
+}
+
+/* ── Title ──────────────────────────────────────────────────── */
 .apply-title {
-  @apply text-center text-2xl font-semibold text-white md:text-3xl;
+  @apply text-center text-3xl font-extrabold md:text-4xl;
+  font-family: var(--sans);
+  letter-spacing: -0.02em;
+  color: var(--text-hi);
+  text-shadow: 0 0 40px rgba(45, 212, 191, 0.3);
+  position: relative;
 }
 
+.apply-title::after {
+  content: '';
+  display: block;
+  width: 60px;
+  height: 2px;
+  margin: 12px auto 0;
+  background: linear-gradient(90deg, transparent, var(--teal), transparent);
+  border-radius: 2px;
+}
+
+/* ── Top Bar / Back Button ──────────────────────────────────── */
 .apply-topbar {
-  @apply mb-4 flex justify-start;
+  @apply mb-6 flex justify-start;
 }
 
 .back-btn {
-  @apply inline-flex items-center rounded-lg border border-teal-300/35 bg-teal-400/10 px-4 py-2 text-sm font-semibold text-teal-300 transition;
+  @apply inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold;
+  font-family: var(--mono);
+  color: var(--teal);
+  background: var(--teal-dim);
+  border: 1px solid var(--teal-line);
+  border-radius: var(--radius-sm);
+  letter-spacing: 0.02em;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.back-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, var(--teal-dim), transparent);
+  opacity: 0;
+  transition: opacity 0.2s ease;
 }
 
 .back-btn:hover {
-  @apply border-teal-300/65 bg-teal-400/20;
+  background: rgba(45, 212, 191, 0.22);
+  border-color: rgba(45, 212, 191, 0.5);
+  box-shadow: 0 0 18px -4px var(--teal-glow);
+  transform: translateX(-2px);
 }
 
+.back-btn:hover::before {
+  opacity: 1;
+}
+
+/* ── Form Layout ────────────────────────────────────────────── */
 .apply-form {
-  @apply mt-8 space-y-8;
+  @apply mt-10 space-y-8;
 }
 
 .apply-top-grid {
-  @apply grid grid-cols-1 gap-6 md:grid-cols-2;
+  @apply grid grid-cols-1 gap-5 md:grid-cols-2;
 }
 
+/* ── Section Cards ──────────────────────────────────────────── */
 .apply-section {
-  @apply rounded-xl border border-white/10 p-5;
-  background: rgba(11, 13, 16, 0.65);
+  @apply p-6;
+  background: var(--bg-section);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  position: relative;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.apply-section::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 20px;
+  width: 40px; height: 1px;
+  background: linear-gradient(90deg, var(--teal), transparent);
+  border-radius: 1px;
+}
+
+.apply-section:focus-within {
+  border-color: rgba(45, 212, 191, 0.2);
+  box-shadow: 0 0 30px -15px var(--teal-glow);
 }
 
 .apply-section h2 {
-  @apply m-0 text-lg font-semibold text-white;
+  @apply m-0 text-base font-bold;
+  font-family: var(--mono);
+  color: var(--teal);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 0.78rem;
 }
 
+/* ── Register Group ─────────────────────────────────────────── */
 .register-group {
-  @apply mt-4 space-y-3;
+  @apply mt-5 space-y-3;
 }
 
 .register-group p {
-  @apply m-0 text-sm font-medium text-slate-300;
+  @apply m-0 text-sm font-semibold;
+  color: var(--text-mid);
+  letter-spacing: 0.01em;
 }
 
 .register-options {
@@ -59,43 +220,94 @@
 }
 
 .radio-row {
-  @apply flex items-center gap-2 text-sm text-slate-300;
+  @apply flex items-center gap-3 text-sm;
+  color: var(--text-mid);
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+}
+
+.radio-row:hover {
+  background: var(--teal-dim);
+  border-color: var(--teal-line);
+  color: var(--text-hi);
 }
 
 .radio-row input[type="radio"] {
-  accent-color: #2dd4bf;
+  accent-color: var(--teal);
+  width: 15px; height: 15px;
+  cursor: pointer;
 }
 
+/* ── Fields ─────────────────────────────────────────────────── */
 .field-grid {
   @apply mt-5 grid grid-cols-1 gap-4;
 }
 
 .field {
-  @apply space-y-1.5 text-sm;
+  @apply space-y-2 text-sm;
 }
 
 .field span {
-  @apply font-medium text-slate-300;
+  @apply block font-semibold;
+  font-family: var(--mono);
+  color: var(--text-mid);
+  font-size: 0.72rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
 }
 
 .field input,
 .field select,
 .field textarea {
-  @apply w-full rounded-xl border border-white/15 bg-slate-900/70 px-4 py-2.5 text-slate-100 outline-none transition;
+  @apply w-full px-4 py-3 text-sm outline-none transition-all duration-200;
+  font-family: var(--sans);
+  color: var(--text-hi);
+  background: rgba(7, 10, 14, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-sm);
+  caret-color: var(--teal);
 }
 
 .field input::placeholder,
 .field select::placeholder,
 .field textarea::placeholder {
-  @apply text-slate-500;
+  color: var(--text-lo);
+}
+
+/* Select arrow tint */
+.field select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%232dd4bf' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 36px;
+}
+
+.field select option {
+  background: #0b0f15;
+  color: var(--text-hi);
 }
 
 .field input:focus,
 .field select:focus,
 .field textarea:focus {
-  @apply border-teal-400 ring-2 ring-teal-400/20;
+  border-color: var(--teal);
+  background: rgba(11, 15, 22, 0.95);
+  box-shadow:
+    0 0 0 3px rgba(45, 212, 191, 0.12),
+    inset 0 1px 0 rgba(45, 212, 191, 0.06);
 }
 
+.field textarea {
+  resize: vertical;
+  min-height: 90px;
+  line-height: 1.6;
+}
+
+/* ── File Uploads ───────────────────────────────────────────── */
 .uploads-grid {
   @apply mt-5 grid grid-cols-1 gap-3 md:grid-cols-2;
 }
@@ -109,47 +321,178 @@
 }
 
 .upload-control span {
-  @apply flex w-full cursor-pointer items-center justify-center rounded-xl border border-dashed border-teal-300/40 px-4 py-3 text-center text-sm font-medium text-teal-300 transition;
-  background: rgba(15, 23, 42, 0.7);
+  @apply flex w-full cursor-pointer items-center justify-center gap-2 px-4 py-4 text-center text-sm font-semibold;
+  font-family: var(--mono);
+  color: var(--teal);
+  letter-spacing: 0.04em;
+  background: rgba(7, 10, 14, 0.7);
+  border: 1px dashed rgba(45, 212, 191, 0.3);
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.upload-control span::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, var(--teal-dim) 0%, transparent 60%);
+  opacity: 0;
+  transition: opacity 0.2s ease;
 }
 
 .upload-control span:hover {
-  @apply border-teal-300/70 bg-teal-400/10;
+  border-color: rgba(45, 212, 191, 0.65);
+  background: rgba(45, 212, 191, 0.07);
+  box-shadow: 0 0 20px -8px var(--teal-glow);
+  transform: translateY(-1px);
 }
 
+.upload-control span:hover::before {
+  opacity: 1;
+}
+
+/* ── Actions Row ────────────────────────────────────────────── */
 .apply-actions {
-  @apply flex flex-col items-center justify-center gap-4 pt-1;
+  @apply flex flex-col items-center justify-center gap-5 pt-2;
 }
 
+/* ── Submit Button ──────────────────────────────────────────── */
 .submit-btn {
-  @apply rounded-xl px-12 py-3 text-base font-semibold text-slate-950 transition focus:outline-none focus:ring-4 focus:ring-teal-300/30;
-  @apply bg-teal-400 shadow-[0_10px_26px_-12px_rgba(45,212,191,0.8)];
+  @apply px-14 py-3.5 text-sm font-bold tracking-widest;
+  font-family: var(--mono);
+  color: #050810;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  background: linear-gradient(135deg, var(--teal) 0%, #5eead4 100%);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.25s ease;
+  box-shadow:
+    0 0 30px -8px var(--teal-glow),
+    0 4px 20px -6px rgba(45, 212, 191, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+
+  /* Clipped corners */
+  clip-path: polygon(
+    6px 0%, calc(100% - 6px) 0%,
+    100% 6px, 100% calc(100% - 6px),
+    calc(100% - 6px) 100%, 6px 100%,
+    0% calc(100% - 6px), 0% 6px
+  );
+}
+
+.submit-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,0.15) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+/* Animated shine sweep */
+.submit-btn::after {
+  content: '';
+  position: absolute;
+  top: -50%; left: -75%;
+  width: 50%; height: 200%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.25),
+    transparent
+  );
+  transform: skewX(-20deg);
+  transition: left 0.5s ease;
 }
 
 .submit-btn:hover {
-  @apply -translate-y-0.5 bg-white;
+  transform: translateY(-2px);
+  box-shadow:
+    0 0 50px -8px var(--teal-glow),
+    0 8px 30px -6px rgba(45, 212, 191, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  background: linear-gradient(135deg, #5eead4 0%, #a7f3d0 100%);
+}
+
+.submit-btn:hover::after {
+  left: 125%;
+}
+
+.submit-btn:active {
+  transform: translateY(0);
+}
+
+.submit-btn:focus {
+  outline: none;
+  box-shadow:
+    0 0 0 3px rgba(45, 212, 191, 0.3),
+    0 0 40px -8px var(--teal-glow);
 }
 
 .submit-btn:disabled {
-  @apply cursor-not-allowed opacity-70;
+  @apply cursor-not-allowed;
+  opacity: 0.45;
+  transform: none;
+  box-shadow: none;
+  filter: grayscale(0.3);
 }
 
+/* ── NDA Checkbox Row ───────────────────────────────────────── */
 .nda-row {
-  @apply flex items-center gap-2 text-sm text-slate-300;
+  @apply flex items-center gap-3 text-sm;
+  font-family: var(--mono);
+  color: var(--text-mid);
+  letter-spacing: 0.01em;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.02);
+  transition: border-color 0.2s ease;
+}
+
+.nda-row:has(input:checked) {
+  border-color: var(--teal-line);
+  background: var(--teal-dim);
+  color: var(--text-hi);
 }
 
 .nda-row input[type="checkbox"] {
-  accent-color: #2dd4bf;
+  accent-color: var(--teal);
+  width: 15px; height: 15px;
+  cursor: pointer;
 }
 
+/* ── Errors ─────────────────────────────────────────────────── */
 .field-error {
-  @apply m-0 text-xs text-rose-400;
+  @apply m-0 text-xs font-medium;
+  font-family: var(--mono);
+  color: var(--red);
+  letter-spacing: 0.04em;
 }
 
 .upload-error {
   @apply px-1;
 }
 
+/* ── Feedback Banner ────────────────────────────────────────── */
 .apply-feedback {
-  @apply mt-4 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200;
+  @apply mt-4 px-5 py-4 text-sm;
+  font-family: var(--mono);
+  color: var(--teal);
+  letter-spacing: 0.03em;
+  background: rgba(45, 212, 191, 0.06);
+  border: 1px solid var(--teal-line);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--teal);
+  position: relative;
+}
+
+.apply-feedback::before {
+  content: '> ';
+  opacity: 0.6;
 }

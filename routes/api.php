@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AdminParkingApplicationController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\StudentParkingApplicationController;
@@ -38,6 +39,10 @@ Route::prefix('admin')->middleware(['jwt.auth', 'role.admin'])->group(function (
             'user' => $request->user()?->only(['id', 'name', 'email', 'role']),
         ]);
     });
+    Route::get('/parking-applications', [AdminParkingApplicationController::class, 'index']);
+    Route::get('/parking-applications/{parkingApplication}/documents', [AdminParkingApplicationController::class, 'documents']);
+    Route::get('/documents/{document}/view', [AdminParkingApplicationController::class, 'viewDocument']);
+    Route::get('/documents/{document}/download', [AdminParkingApplicationController::class, 'downloadDocument']);
 });
 
 Route::prefix('teacher')->middleware(['jwt.auth', 'role.teacher'])->group(function () {
