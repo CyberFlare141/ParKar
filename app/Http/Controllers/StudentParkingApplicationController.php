@@ -107,7 +107,7 @@ class StudentParkingApplicationController extends Controller
                 'semester_id' => $payload['semester_id'],
                 'vehicle_id' => $vehicle->id,
                 'status' => 'pending',
-                'register_as' => 'student',
+                'register_as' => (string) $user->role,
                 'applicant_name' => trim((string) $payload['name']),
                 'applicant_university_id' => trim((string) $payload['aust_id']),
                 'applicant_email' => strtolower(trim((string) $payload['email'])),

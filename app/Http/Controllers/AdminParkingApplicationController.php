@@ -2,13 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AuditLog;
 use App\Models\Document;
 use App\Models\ParkingApplication;
+use App\Models\ParkingTicket;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
 class AdminParkingApplicationController extends Controller
 {
@@ -20,10 +25,11 @@ class AdminParkingApplicationController extends Controller
 
         $query = ParkingApplication::query()
             ->with([
-                'user:id,name,email,university_id',
+                'user:id,name,email,university_id,role',
                 'semester:id,name,start_date,end_date',
                 'vehicle:id,plate_number,vehicle_type,brand,model,color,registration_number',
                 'documents:id,document_type,file_path,is_verified,created_at',
+                'parkingTicket:id,ticket_id,application_id,issue_date,parking_slot',
             ])
             ->orderByDesc('id');
 
@@ -58,6 +64,92 @@ class AdminParkingApplicationController extends Controller
                 'per_page' => $paginated->perPage(),
                 'total' => $paginated->total(),
             ],
+        ]);
+    }
+
+    public function review(Request $request, ParkingApplication $parkingApplication): JsonResponse
+    {
+        $payload = $request->validate([
+            'status' => ['required', 'in:approved,rejected'],
+            'admin_comment' => ['nullable', 'string', 'max:2000'],
+            'parking_slot' => ['nullable', 'string', 'max:40'],
+        ]);
+
+        if ($payload['status'] === 'rejected' && empty(trim((string) ($payload['admin_comment'] ?? '')))) {
+            throw ValidationException::withMessages([
+                'admin_comment' => ['A comment is required when rejecting an application.'],
+            ]);
+        }
+
+        try {
+            $updated = DB::transaction(function () use ($request, $parkingApplication, $payload): ParkingApplication {
+                $application = ParkingApplication::query()
+                    ->whereKey($parkingApplication->id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                if ($application->status !== 'pending') {
+                    throw ValidationException::withMessages([
+                        'status' => ['Only pending applications can be reviewed.'],
+                    ]);
+                }
+
+                $application->forceFill([
+                    'status' => $payload['status'],
+                    'admin_comment' => isset($payload['admin_comment']) ? trim((string) $payload['admin_comment']) : null,
+                    'reviewed_by' => $request->user()?->id,
+                    'reviewed_at' => now(),
+                ])->save();
+
+                $ticket = null;
+                if ($payload['status'] === 'approved') {
+                    $ticket = ParkingTicket::query()->firstOrCreate(
+                        ['application_id' => $application->id],
+                        [
+                            'ticket_id' => $this->generateUniqueTicketId(),
+                            'issue_date' => now(),
+                            'parking_slot' => isset($payload['parking_slot']) ? trim((string) $payload['parking_slot']) : null,
+                        ]
+                    );
+                }
+
+                AuditLog::query()->create([
+                    'admin_id' => $request->user()?->id,
+                    'application_id' => $application->id,
+                    'action' => $payload['status'] === 'approved' ? 'approved' : 'rejected',
+                    'reason' => isset($payload['admin_comment']) ? trim((string) $payload['admin_comment']) : null,
+                    'created_at' => now(),
+                ]);
+
+                $application->load([
+                    'user:id,name,email,university_id,role',
+                    'semester:id,name,start_date,end_date',
+                    'vehicle:id,plate_number,vehicle_type,brand,model,color,registration_number',
+                    'documents:id,document_type,file_path,is_verified,created_at',
+                    'parkingTicket:id,ticket_id,application_id,issue_date,parking_slot',
+                ]);
+
+                if ($ticket !== null && $application->parkingTicket === null) {
+                    $application->setRelation('parkingTicket', $ticket);
+                }
+
+                return $application;
+            });
+        } catch (ValidationException $exception) {
+            throw $exception;
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return response()->json([
+                'message' => 'Failed to update application review status.',
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+
+        return response()->json([
+            'message' => $updated->status === 'approved'
+                ? 'Application approved and ticket issued.'
+                : 'Application rejected.',
+            'data' => $this->toApplicationSummary($updated),
         ]);
     }
 
@@ -126,11 +218,14 @@ class AdminParkingApplicationController extends Controller
             'id' => $application->id,
             'status' => $application->status,
             'created_at' => $application->created_at?->toIso8601String(),
+            'reviewed_at' => $application->reviewed_at?->toIso8601String(),
+            'admin_comment' => $application->admin_comment,
             'applicant' => [
                 'name' => $application->applicant_name,
                 'university_id' => $application->applicant_university_id,
                 'email' => $application->applicant_email,
                 'phone' => $application->applicant_phone,
+                'role' => $application->register_as ?: $application->user?->role ?: 'unknown',
             ],
             'semester' => $application->semester ? [
                 'id' => $application->semester->id,
@@ -150,6 +245,11 @@ class AdminParkingApplicationController extends Controller
             'documents' => $application->documents->map(
                 fn (Document $document): array => $this->toDocumentSummary($document)
             )->values(),
+            'ticket' => $application->parkingTicket ? [
+                'ticket_id' => $application->parkingTicket->ticket_id,
+                'issue_date' => $application->parkingTicket->issue_date?->toIso8601String(),
+                'parking_slot' => $application->parkingTicket->parking_slot,
+            ] : null,
         ];
     }
 
@@ -164,5 +264,17 @@ class AdminParkingApplicationController extends Controller
             'view_url' => url("/api/admin/documents/{$document->id}/view"),
             'download_url' => url("/api/admin/documents/{$document->id}/download"),
         ];
+    }
+
+    private function generateUniqueTicketId(): string
+    {
+        for ($attempt = 0; $attempt < 10; $attempt++) {
+            $candidate = 'PKT-' . now()->format('Ymd') . '-' . str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+            if (!ParkingTicket::query()->where('ticket_id', $candidate)->exists()) {
+                return $candidate;
+            }
+        }
+
+        return 'PKT-' . now()->format('YmdHis') . '-' . strtoupper(bin2hex(random_bytes(2)));
     }
 }

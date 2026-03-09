@@ -41,6 +41,7 @@ Route::prefix('admin')->middleware(['jwt.auth', 'role.admin'])->group(function (
     });
     Route::get('/parking-applications', [AdminParkingApplicationController::class, 'index']);
     Route::get('/parking-applications/{parkingApplication}/documents', [AdminParkingApplicationController::class, 'documents']);
+    Route::patch('/parking-applications/{parkingApplication}/status', [AdminParkingApplicationController::class, 'review']);
     Route::get('/documents/{document}/view', [AdminParkingApplicationController::class, 'viewDocument']);
     Route::get('/documents/{document}/download', [AdminParkingApplicationController::class, 'downloadDocument']);
 });
