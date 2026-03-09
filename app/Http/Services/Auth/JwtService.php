@@ -4,13 +4,14 @@ namespace App\Http\Services\Auth;
 
 use App\Models\User;
 use DateTimeImmutable;
+use DateInterval;
 use DateTimeZone;
 use Lcobucci\Clock\SystemClock;
 use Lcobucci\JWT\Configuration;
 use Lcobucci\JWT\Encoding\CannotDecodeContent;
 use Lcobucci\JWT\Signer\Hmac\Sha256;
 use Lcobucci\JWT\Token\InvalidTokenStructure;
-use Lcobucci\JWT\UnencryptedToken;
+use Lcobucci\JWT\Token\Plain;
 use Lcobucci\JWT\Validation\Constraint\SignedWith;
 use Lcobucci\JWT\Validation\Constraint\ValidAt;
 use Lcobucci\JWT\Signer\Key\InMemory;
@@ -47,7 +48,6 @@ class JwtService
             ->issuedBy((string) config('jwt.issuer'))
             ->permittedFor((string) config('jwt.audience'))
             ->issuedAt($now)
-            ->canOnlyBeUsedAfter($now)
             ->expiresAt($now->modify("+{$ttlMinutes} minutes"))
             ->withClaim('userId', (int) $user->id)
             ->withClaim('email', (string) $user->email)
@@ -60,7 +60,7 @@ class JwtService
         return $token->toString();
     }
 
-    public function parseAndValidate(string $token): ?UnencryptedToken
+    public function parseAndValidate(string $token): ?Plain
     {
         try {
             $parsed = $this->configuration->parser()->parse($token);
@@ -68,14 +68,15 @@ class JwtService
             return null;
         }
 
-        if (!$parsed instanceof UnencryptedToken) {
+        if (!$parsed instanceof Plain) {
             return null;
         }
 
         $clock = new SystemClock(new DateTimeZone((string) config('app.timezone', 'UTC')));
         $constraints = [
             new SignedWith($this->configuration->signer(), $this->configuration->verificationKey()),
-            new ValidAt($clock),
+            // A small leeway avoids false 401s on minor clock skew between services.
+            new ValidAt($clock, new DateInterval('PT2M')),
         ];
 
         if (!$this->configuration->validator()->validate($parsed, ...$constraints)) {

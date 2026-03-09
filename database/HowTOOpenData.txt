@@ -1,0 +1,10 @@
+Open:
+http://localhost:18081
+
+
+Use these login values:
+System: MySQL
+Server: mysql (or parkar_mysql)
+Username: root
+Password: ParKar
+Database: ParKar
