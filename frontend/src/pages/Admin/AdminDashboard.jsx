@@ -1,5 +1,3 @@
-import { Link } from "react-router-dom";
-
 export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
@@ -24,14 +22,6 @@ export default function AdminDashboard() {
           <p className="mt-2 text-sm text-gray-600">
             Demo view loaded successfully.
           </p>
-          <div className="mt-5">
-            <Link
-              to="/admin/review"
-              className="inline-flex items-center rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800"
-            >
-              Application
-            </Link>
-          </div>
         </div>
       </main>
     </div>
