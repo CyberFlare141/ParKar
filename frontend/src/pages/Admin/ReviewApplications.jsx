@@ -38,6 +38,14 @@ export default function ReviewApplications() {
     admin_comment: "",
     parking_slot: "",
   });
+  const [preview, setPreview] = useState({
+    open: false,
+    loading: false,
+    error: "",
+    fileUrl: "",
+    mimeType: "",
+    fileName: "",
+  });
 
   const queryParams = useMemo(() => {
     const params = {
@@ -85,6 +93,14 @@ export default function ReviewApplications() {
   useEffect(() => {
     loadApplications(false);
   }, [loadApplications]);
+
+  useEffect(() => {
+    return () => {
+      if (preview.fileUrl) {
+        URL.revokeObjectURL(preview.fileUrl);
+      }
+    };
+  }, [preview.fileUrl]);
 
   const handleExpand = (application) => {
     const nextExpanded = expandedId === application.id ? null : application.id;
@@ -145,6 +161,64 @@ export default function ReviewApplications() {
     }
   };
 
+  const closePreview = () => {
+    setPreview((prev) => {
+      if (prev.fileUrl) {
+        URL.revokeObjectURL(prev.fileUrl);
+      }
+      return {
+        open: false,
+        loading: false,
+        error: "",
+        fileUrl: "",
+        mimeType: "",
+        fileName: "",
+      };
+    });
+  };
+
+  const handleViewDocument = async (document) => {
+    try {
+      setError("");
+      setMessage("");
+      setPreview((prev) => {
+        if (prev.fileUrl) {
+          URL.revokeObjectURL(prev.fileUrl);
+        }
+        return {
+          open: true,
+          loading: true,
+          error: "",
+          fileUrl: "",
+          mimeType: "",
+          fileName: String(document?.file_path || "").split("/").pop() || "document",
+        };
+      });
+
+      const response = await client.get(document.view_url, {
+        responseType: "blob",
+        skipAuthRedirect: true,
+      });
+
+      const blob = response?.data;
+      const fileUrl = URL.createObjectURL(blob);
+      setPreview((prev) => ({
+        ...prev,
+        loading: false,
+        fileUrl,
+        mimeType: blob?.type || "",
+      }));
+    } catch (previewError) {
+      setPreview((prev) => ({
+        ...prev,
+        loading: false,
+        error:
+          previewError?.response?.data?.message ||
+          "Failed to load document preview.",
+      }));
+    }
+  };
+
   return (
     <div className="admin-review-page">
       <div className="admin-review-shell">
@@ -184,9 +258,9 @@ export default function ReviewApplications() {
               <tr>
                 <th>Applicant</th>
                 <th>Role</th>
+                <th>ID Number</th>
                 <th>Vehicle</th>
                 <th>Submitted Date</th>
-                <th>Document</th>
                 <th>Status</th>
                 <th>Action</th>
               </tr>
@@ -213,6 +287,7 @@ export default function ReviewApplications() {
                     <tr key={application.id}>
                       <td>{application?.applicant?.name || "N/A"}</td>
                       <td>{capitalize(application?.applicant?.role)}</td>
+                      <td>{application?.applicant?.university_id || "N/A"}</td>
                       <td>
                         {application?.vehicle?.brand || "N/A"} {application?.vehicle?.model || ""}
                         <br />
@@ -221,19 +296,6 @@ export default function ReviewApplications() {
                         </span>
                       </td>
                       <td>{toLocalDateTime(application?.created_at)}</td>
-                      <td>
-                        {application?.documents?.length ? (
-                          <a
-                            href={application.documents[0].view_url}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            View
-                          </a>
-                        ) : (
-                          "N/A"
-                        )}
-                      </td>
                       <td>
                         <span className={statusClass(application?.status)}>
                           {capitalize(application?.status)}
@@ -306,13 +368,13 @@ export default function ReviewApplications() {
                     {application.documents.map((document) => (
                       <li key={document.id}>
                         {capitalize(document.document_type)}:{" "}
-                        <a href={document.view_url} target="_blank" rel="noreferrer">
+                        <button
+                          type="button"
+                          className="doc-view-btn"
+                          onClick={() => handleViewDocument(document)}
+                        >
                           View
-                        </a>{" "}
-                        |{" "}
-                        <a href={document.download_url} target="_blank" rel="noreferrer">
-                          Download
-                        </a>
+                        </button>
                       </li>
                     ))}
                   </ul>
@@ -375,6 +437,40 @@ export default function ReviewApplications() {
           );
         })}
       </div>
+
+      {preview.open ? (
+        <div className="doc-modal-overlay" onClick={closePreview}>
+          <div className="doc-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="doc-modal-header">
+              <h3>Document Preview</h3>
+              <button type="button" className="doc-close-btn" onClick={closePreview}>
+                Close
+              </button>
+            </div>
+
+            {preview.loading ? <p>Loading document...</p> : null}
+            {preview.error ? <p className="admin-review-message error">{preview.error}</p> : null}
+
+            {!preview.loading && !preview.error && preview.fileUrl ? (
+              <div className="doc-modal-body">
+                {preview.mimeType.startsWith("image/") ? (
+                  <img src={preview.fileUrl} alt={preview.fileName} className="doc-image" />
+                ) : preview.mimeType === "application/pdf" ? (
+                  <iframe
+                    src={preview.fileUrl}
+                    title={preview.fileName}
+                    className="doc-pdf-frame"
+                  />
+                ) : (
+                  <a href={preview.fileUrl} target="_blank" rel="noreferrer">
+                    Open document in new tab
+                  </a>
+                )}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

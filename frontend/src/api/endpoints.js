@@ -10,6 +10,8 @@ export const ENDPOINTS = {
   CONTACT: "/contact",
   ITEMS: "/items",
   ADMIN_PARKING_APPLICATIONS: "/admin/parking-applications",
+  ADMIN_REVIEW_APPLICATION: (applicationId) =>
+    `/admin/parking-applications/${applicationId}/status`,
   ADMIN_APPLICATION_DOCUMENTS: (applicationId) =>
     `/admin/parking-applications/${applicationId}/documents`,
   ADMIN_VIEW_DOCUMENT: (documentId) => `/admin/documents/${documentId}/view`,
