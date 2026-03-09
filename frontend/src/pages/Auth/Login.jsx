@@ -93,7 +93,7 @@ export default function Login() {
         otp: otp.trim(),
       });
 
-      setAuthSession(response.data.token, response.data.user);
+      setAuthSession(response.data.token || response.data.access_token, response.data.user);
       setFeedback("Authentication successful.");
       navigate("/", { replace: true });
     } catch (error) {

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import client from "../api/client";
 import { ENDPOINTS } from "../api/endpoints";
+import { getAuthToken } from "../auth/session";
 import "./Profile.css";
 
 function getStoredUser() {
@@ -74,7 +75,7 @@ export default function Profile() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const hasToken = useMemo(() => Boolean(localStorage.getItem("auth_token")), []);
+  const hasToken = useMemo(() => Boolean(getAuthToken()), []);
 
   useEffect(() => {
     const loadProfile = async () => {

@@ -67,17 +67,7 @@ const initialValues = {
 };
 
 function formatSemesterLabel(semester) {
-  const name = String(semester?.name || "").trim();
-  const start = String(semester?.start_date || "").trim();
-  const end = String(semester?.end_date || "").trim();
-  const hasValidDateRange =
-    start !== "" && end !== "" && start !== "N/A" && end !== "N/A";
-
-  if (!hasValidDateRange) {
-    return name;
-  }
-
-  return `${name} (${start} to ${end})`;
+  return String(semester?.name || "").trim();
 }
 
 export default function ApplyParking() {
