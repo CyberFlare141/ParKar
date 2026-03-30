@@ -5,7 +5,7 @@ docker exec -it parkar_app php artisan key:generate
 docker exec -it parkar_app php artisan migrate
 
 
-docker compose exec app php artisan migrate:fresh   //THis drop previous table
+docker compose exec app php artisan migrate:fresh --seed   // This drops previous tables and reseeds semesters
 docker compose up -d   for regular run
 
 

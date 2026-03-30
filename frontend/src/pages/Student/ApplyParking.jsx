@@ -32,24 +32,6 @@ const uploadItems = [
   },
 ];
 
-const FALLBACK_SEMESTERS = [
-  "1.1",
-  "1.2",
-  "2.1",
-  "2.2",
-  "3.1",
-  "3.2",
-  "4.1",
-  "4.2",
-  "5.1",
-  "5.2",
-].map((name, index) => ({
-  id: 1000 + index,
-  name,
-  start_date: "N/A",
-  end_date: "N/A",
-}));
-
 const initialValues = {
   name: "",
   aust_id: "",
@@ -67,7 +49,26 @@ const initialValues = {
 };
 
 function formatSemesterLabel(semester) {
-  return String(semester?.name || "").trim();
+  const name = String(
+    semester?.name ||
+      semester?.title ||
+      semester?.semester_name ||
+      semester?.label ||
+      "",
+  ).trim();
+
+  if (name) {
+    return name;
+  }
+
+  const startDate = String(semester?.start_date || "").trim();
+  const endDate = String(semester?.end_date || "").trim();
+
+  if (startDate && endDate) {
+    return `${startDate} - ${endDate}`;
+  }
+
+  return `Semester ${semester?.id ?? ""}`.trim();
 }
 
 export default function ApplyParking() {
@@ -87,6 +88,7 @@ export default function ApplyParking() {
   const [semesters, setSemesters] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasAvailableSemesters, setHasAvailableSemesters] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
@@ -106,7 +108,9 @@ export default function ApplyParking() {
 
         const user = profileResponse?.data?.user || {};
         const nextSemesters = semesterResponse?.data?.data || [];
+        const hasSemesters = nextSemesters.length > 0;
 
+        setHasAvailableSemesters(hasSemesters);
         setSemesters(nextSemesters);
         setValues((prev) => ({
           ...prev,
@@ -114,8 +118,16 @@ export default function ApplyParking() {
           aust_id: user?.university_id || "",
           email: user?.email || "",
           contact_phone: user?.phone || "",
-          semester_id: nextSemesters[0]?.id ? String(nextSemesters[0].id) : "",
+          semester_id: hasSemesters && nextSemesters[0]?.id
+            ? String(nextSemesters[0].id)
+            : "",
         }));
+
+        if (!hasSemesters) {
+          setFeedback(
+            "No active semesters are available yet. Run the semester seeder or add an active semester first.",
+          );
+        }
       } catch (error) {
         if (!isMounted) {
           return;
@@ -141,11 +153,11 @@ export default function ApplyParking() {
           }));
         }
 
-        // Fallback so semester dropdown remains usable when API is unavailable.
-        setSemesters(FALLBACK_SEMESTERS);
+        setHasAvailableSemesters(false);
+        setSemesters([]);
         setValues((prev) => ({
           ...prev,
-          semester_id: prev.semester_id || String(FALLBACK_SEMESTERS[0].id),
+          semester_id: "",
         }));
       } finally {
         if (isMounted) {
@@ -245,6 +257,17 @@ export default function ApplyParking() {
     setErrors(validationErrors);
 
     if (Object.keys(validationErrors).length > 0) {
+      return;
+    }
+
+    if (!hasAvailableSemesters) {
+      setErrors((prev) => ({
+        ...prev,
+        semester_id: "No valid semester is available right now.",
+      }));
+      setFeedback(
+        "No active semester exists in the database yet. Please seed semesters or create one before submitting.",
+      );
       return;
     }
 
@@ -370,7 +393,7 @@ export default function ApplyParking() {
                     name="semester_id"
                     value={values.semester_id}
                     onChange={handleChange}
-                    disabled={isLoading || isSubmitting}
+                    disabled={isLoading || isSubmitting || !hasAvailableSemesters}
                   >
                     <option value="">Select semester</option>
                     {semesterOptions.map((option) => (
