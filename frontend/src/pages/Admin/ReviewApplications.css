@@ -1,60 +1,212 @@
+/* ============================================================
+   Admin Review Page — ParkKampus
+   Matches homepage dark theme (teal / #080d0d / DM Sans)
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --teal:         #2dd4bf;
+  --teal-hover:   #5eead4;
+  --teal-dim:     rgba(45, 212, 191, 0.10);
+  --teal-border:  rgba(45, 212, 191, 0.22);
+  --teal-glow:    rgba(45, 212, 191, 0.30);
+
+  --bg:           #080d0d;
+  --surface:      #0f1a1a;
+  --surface-alt:  #111f1f;
+  --surface-hover:#132020;
+
+  --border:       rgba(45, 212, 191, 0.12);
+  --border-muted: rgba(255, 255, 255, 0.07);
+
+  --text:         #e2e8f0;
+  --text-sub:     #94a3b8;
+  --text-muted:   #4b5563;
+
+  --radius:       10px;
+  --radius-sm:    8px;
+  --radius-xs:    6px;
+
+  --shadow-sm:    0 1px 4px rgba(0, 0, 0, 0.4);
+  --shadow-md:    0 4px 20px rgba(0, 0, 0, 0.5);
+  --shadow-teal:  0 4px 20px rgba(45, 212, 191, 0.15);
+
+  --transition:   0.2s ease;
+}
+
+/* ── Page shell ── */
 .admin-review-page {
   min-height: 100vh;
-  background: #f3f4f6;
-  padding: 24px;
+  background: var(--bg);
+  padding: 32px 24px 60px;
+  font-family: 'DM Sans', sans-serif;
+  color: var(--text);
+}
+
+/* Subtle noise overlay inherited from body */
+.admin-review-page::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
 }
 
 .admin-review-shell {
+  position: relative;
+  z-index: 1;
   max-width: 1200px;
   margin: 0 auto;
   display: grid;
-  gap: 16px;
+  gap: 20px;
 }
 
+/* ── Header ── */
 .admin-review-header h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.85rem;
+  font-weight: 700;
+  color: #ffffff;
   margin: 0;
-  font-size: 1.8rem;
-  color: #111827;
+  line-height: 1.15;
 }
 
 .admin-review-header p {
   margin: 6px 0 0;
-  color: #4b5563;
+  font-size: 0.92rem;
+  color: var(--text-sub);
 }
 
+/* ── Back button ── */
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 18px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-sub);
+  font: 500 0.88rem 'DM Sans', sans-serif;
+  cursor: pointer;
+  text-decoration: none;
+  transition: border-color var(--transition), color var(--transition),
+              box-shadow var(--transition), transform var(--transition);
+}
+
+.back-btn:hover {
+  border-color: var(--teal-border);
+  color: var(--teal);
+  box-shadow: 0 0 0 3px var(--teal-dim);
+  transform: translateX(-2px);
+}
+
+/* ── Toolbar ── */
 .admin-review-toolbar {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
   display: grid;
   gap: 10px;
-  grid-template-columns: 1fr 180px 120px;
+  grid-template-columns: 1fr 190px 130px;
+  box-shadow: var(--shadow-sm);
 }
 
 .admin-review-toolbar input,
-.admin-review-toolbar select,
-.admin-review-toolbar button,
-.review-actions textarea,
-.review-actions input {
-  font: inherit;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  padding: 10px;
+.admin-review-toolbar select {
+  font: 400 0.92rem 'DM Sans', sans-serif;
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  background: var(--surface-alt);
+  color: var(--text);
+  outline: none;
+  width: 100%;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.admin-review-toolbar input::placeholder {
+  color: var(--text-muted);
+}
+
+.admin-review-toolbar input:focus,
+.admin-review-toolbar select:focus {
+  border-color: var(--teal-border);
+  box-shadow: 0 0 0 3px var(--teal-dim);
+}
+
+.admin-review-toolbar select {
+  appearance: none;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2394a3b8' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+}
+
+.admin-review-toolbar select option {
+  background: var(--surface);
+  color: var(--text);
 }
 
 .admin-review-toolbar button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--teal);
+  color: #082020;
+  font: 700 0.9rem 'DM Sans', sans-serif;
   cursor: pointer;
-  background: #111827;
-  color: #ffffff;
+  box-shadow: 0 2px 12px var(--teal-glow);
+  transition: background var(--transition), transform var(--transition),
+              box-shadow var(--transition);
 }
 
-.admin-review-table-wrap,
-.application-detail {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
+.admin-review-toolbar button:hover {
+  background: var(--teal-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px var(--teal-glow);
+}
+
+.admin-review-toolbar button:active {
+  transform: translateY(0);
+}
+
+/* ── Message banners ── */
+.admin-review-message {
+  margin: 0;
+  padding: 11px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  font-family: 'DM Sans', sans-serif;
+}
+
+.admin-review-message.success {
+  color: #6ee7b7;
+  background: rgba(6, 95, 70, 0.2);
+  border: 1px solid rgba(110, 231, 183, 0.25);
+}
+
+.admin-review-message.error {
+  color: #fca5a5;
+  background: rgba(153, 27, 27, 0.2);
+  border: 1px solid rgba(252, 165, 165, 0.25);
+}
+
+/* ── Table card ── */
+.admin-review-table-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
   overflow: hidden;
+  box-shadow: var(--shadow-sm);
 }
 
 .admin-review-table {
@@ -65,139 +217,240 @@
 .admin-review-table th,
 .admin-review-table td {
   text-align: left;
-  padding: 12px;
-  border-bottom: 1px solid #f3f4f6;
-  vertical-align: top;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
 }
 
 .admin-review-table th {
-  background: #f9fafb;
-  font-size: 0.86rem;
-  color: #374151;
+  background: var(--surface-alt);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-sub);
+}
+
+.admin-review-table td {
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.admin-review-table tbody tr {
+  transition: background var(--transition);
+}
+
+.admin-review-table tbody tr:hover {
+  background: var(--surface-hover);
+}
+
+.admin-review-table tbody tr:last-child td {
+  border-bottom: none;
 }
 
 .table-empty {
   text-align: center;
-  color: #6b7280;
-  padding: 24px;
+  color: var(--text-muted);
+  padding: 48px 24px;
+  font-size: 0.9rem;
 }
 
-.detail-btn {
-  border: 1px solid #2563eb;
-  color: #2563eb;
-  background: #eff6ff;
-  border-radius: 8px;
-  padding: 6px 10px;
-  cursor: pointer;
+.muted {
+  color: var(--text-sub);
+  font-size: 0.85rem;
 }
 
-.doc-view-btn {
-  border: 1px solid #2563eb;
-  color: #2563eb;
-  background: #eff6ff;
-  border-radius: 6px;
-  padding: 4px 10px;
-  cursor: pointer;
-}
-
+/* ── Status badges ── */
 .app-status {
-  display: inline-block;
-  font-size: 0.78rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.75rem;
   font-weight: 600;
   border-radius: 999px;
-  padding: 4px 10px;
+  padding: 4px 11px;
+}
+
+.app-status::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.75;
 }
 
 .app-status-pending {
-  color: #854d0e;
-  background: #fef9c3;
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.25);
 }
 
 .app-status-approved {
-  color: #065f46;
-  background: #d1fae5;
+  color: var(--teal);
+  background: var(--teal-dim);
+  border: 1px solid var(--teal-border);
 }
 
 .app-status-rejected {
-  color: #991b1b;
-  background: #fee2e2;
+  color: #fca5a5;
+  background: rgba(252, 165, 165, 0.10);
+  border: 1px solid rgba(252, 165, 165, 0.2);
 }
 
+/* ── Action buttons in table ── */
+.detail-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--teal-border);
+  color: var(--teal);
+  background: var(--teal-dim);
+  border-radius: var(--radius-xs);
+  padding: 6px 12px;
+  font: 500 0.82rem 'DM Sans', sans-serif;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition),
+              transform var(--transition), box-shadow var(--transition);
+}
+
+.detail-btn:hover {
+  background: rgba(45, 212, 191, 0.18);
+  border-color: var(--teal);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-teal);
+}
+
+/* ── Application detail panel ── */
 .application-detail {
-  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
 }
 
 .application-detail h2 {
-  margin-top: 0;
-  color: #111827;
+  font-family: 'Playfair Display', serif;
+  font-size: 1.3rem;
+  color: #ffffff;
+  margin: 0 0 6px;
 }
 
 .application-detail p {
   margin: 6px 0;
-  color: #374151;
+  color: var(--text-sub);
+  font-size: 0.9rem;
 }
 
+/* ── Document list ── */
 .doc-list ul {
   margin: 8px 0;
-  padding-left: 20px;
+  padding-left: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
+.doc-view-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--teal-border);
+  color: var(--teal);
+  background: var(--teal-dim);
+  border-radius: var(--radius-xs);
+  padding: 5px 12px;
+  font: 500 0.82rem 'DM Sans', sans-serif;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition);
+}
+
+.doc-view-btn:hover {
+  background: rgba(45, 212, 191, 0.18);
+  border-color: var(--teal);
+}
+
+/* ── Review actions ── */
 .review-actions {
-  margin-top: 14px;
+  margin-top: 16px;
   display: grid;
   gap: 10px;
 }
 
+.review-actions textarea,
+.review-actions input {
+  width: 100%;
+  padding: 10px 14px;
+  font: 400 0.9rem 'DM Sans', sans-serif;
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius-sm);
+  background: var(--surface-alt);
+  color: var(--text);
+  resize: vertical;
+  outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.review-actions textarea::placeholder,
+.review-actions input::placeholder {
+  color: var(--text-muted);
+}
+
+.review-actions textarea:focus,
+.review-actions input:focus {
+  border-color: var(--teal-border);
+  box-shadow: 0 0 0 3px var(--teal-dim);
+}
+
 .review-buttons {
   display: flex;
-  gap: 8px;
+  gap: 10px;
 }
 
 .approve-btn,
 .reject-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   border: none;
-  border-radius: 8px;
-  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  padding: 9px 20px;
   color: #ffffff;
+  font: 600 0.88rem 'DM Sans', sans-serif;
   cursor: pointer;
+  transition: transform var(--transition), box-shadow var(--transition), filter var(--transition);
 }
 
 .approve-btn {
-  background: #166534;
+  background: #0f766e;
+  box-shadow: 0 2px 10px rgba(15, 118, 110, 0.35);
 }
 
 .reject-btn {
-  background: #b91c1c;
+  background: #9f1239;
+  box-shadow: 0 2px 10px rgba(159, 18, 57, 0.35);
 }
 
-.admin-review-message {
-  margin: 0;
-  padding: 10px 12px;
-  border-radius: 8px;
-  font-size: 0.92rem;
+.approve-btn:hover,
+.reject-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.15);
 }
 
-.admin-review-message.success {
-  color: #065f46;
-  background: #ecfdf5;
-  border: 1px solid #6ee7b7;
+.approve-btn:active,
+.reject-btn:active {
+  transform: translateY(0);
 }
 
-.admin-review-message.error {
-  color: #991b1b;
-  background: #fef2f2;
-  border: 1px solid #fca5a5;
-}
-
-.muted {
-  color: #6b7280;
-  font-size: 0.86rem;
-}
-
+/* ── Document viewer modal ── */
 .doc-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(17, 24, 39, 0.65);
+  background: rgba(8, 13, 13, 0.80);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -208,13 +461,14 @@
 .doc-modal {
   width: min(1100px, 100%);
   max-height: 90vh;
-  background: #ffffff;
+  background: var(--surface);
   border-radius: 12px;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--border);
   display: grid;
   grid-template-rows: auto 1fr;
   gap: 12px;
-  padding: 14px;
+  padding: 16px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--teal-border);
 }
 
 .doc-modal-header {
@@ -225,15 +479,25 @@
 
 .doc-modal-header h3 {
   margin: 0;
-  color: #111827;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #ffffff;
 }
 
 .doc-close-btn {
-  border: 1px solid #d1d5db;
-  background: #f9fafb;
-  border-radius: 8px;
-  padding: 6px 12px;
+  border: 1px solid var(--border-muted);
+  background: var(--surface-alt);
+  border-radius: var(--radius-sm);
+  padding: 6px 14px;
+  color: var(--text-sub);
+  font: 500 0.82rem 'DM Sans', sans-serif;
   cursor: pointer;
+  transition: border-color var(--transition), color var(--transition);
+}
+
+.doc-close-btn:hover {
+  border-color: var(--teal-border);
+  color: var(--teal);
 }
 
 .doc-modal-body {
@@ -244,19 +508,20 @@
 .doc-pdf-frame {
   width: 100%;
   height: 100%;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
 }
 
 .doc-image {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  background: #f9fafb;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-alt);
 }
 
+/* ── Responsive ── */
 @media (max-width: 900px) {
   .admin-review-toolbar {
     grid-template-columns: 1fr;
