@@ -17,5 +17,6 @@ export const ENDPOINTS = {
   ADMIN_VIEW_DOCUMENT: (documentId) => `/admin/documents/${documentId}/view`,
   ADMIN_DOWNLOAD_DOCUMENT: (documentId) => `/admin/documents/${documentId}/download`,
   STUDENT_SEMESTERS: "/student/semesters",
+  STUDENT_DASHBOARD: "/student/dashboard/summary",
   STUDENT_PARKING_APPLICATIONS: "/student/parking-applications",
 };

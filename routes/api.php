@@ -62,6 +62,7 @@ Route::prefix('student')->middleware(['jwt.auth', 'role.student'])->group(functi
             'user' => $request->user()?->only(['id', 'name', 'email', 'role']),
         ]);
     });
+    Route::get('/dashboard/summary', [StudentParkingApplicationController::class, 'dashboard']);
     Route::get('/semesters', [StudentParkingApplicationController::class, 'semesters']);
     Route::post('/parking-applications', [StudentParkingApplicationController::class, 'store']);
 });

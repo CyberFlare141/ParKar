@@ -1,28 +1,486 @@
-export default function StudentDashboard() {
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="border-b bg-white">
-        <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-4">
-          <h1 className="text-lg font-semibold text-gray-900">Student Dashboard</h1>
-          <a
-            href="/logout"
-            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
-          >
-            Logout
-          </a>
-        </div>
-      </header>
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import client from "../../api/client";
+import { ENDPOINTS } from "../../api/endpoints";
+import { getAuthUser } from "../../auth/session";
+import "./StudentDashboard.css";
 
-      <main className="flex items-center justify-center px-4 py-10">
-        <div className="w-full max-w-lg rounded-lg border bg-white p-6 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wide text-green-700">
-            Connected
-          </p>
-          <h2 className="mt-2 text-2xl font-bold text-gray-900">Student Dashboard</h2>
-          <p className="mt-2 text-sm text-gray-600">
-            Demo view loaded successfully.
-          </p>
-        </div>
+function formatDate(value) {
+  if (!value) return "N/A";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "N/A";
+
+  return date.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function formatDateTime(value) {
+  if (!value) return "N/A";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "N/A";
+
+  return date.toLocaleString();
+}
+
+function formatLabel(value) {
+  return String(value || "")
+    .split("_")
+    .filter(Boolean)
+    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+    .join(" ");
+}
+
+function statusTone(status) {
+  const normalized = String(status || "").toLowerCase();
+  if (normalized === "approved") return "pk-student-badge-success";
+  if (normalized === "rejected") return "pk-student-badge-danger";
+  return "pk-student-badge-warning";
+}
+
+export default function StudentDashboard() {
+  const authUser = getAuthUser();
+  const [dashboard, setDashboard] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadDashboard() {
+      try {
+        setLoading(true);
+        setError("");
+
+        const response = await client.get(ENDPOINTS.STUDENT_DASHBOARD, {
+          skipAuthRedirect: true,
+        });
+
+        if (!active) return;
+        setDashboard(response?.data?.data || null);
+      } catch (loadError) {
+        if (!active) return;
+        setError(
+          loadError?.response?.data?.message || "Failed to load your dashboard.",
+        );
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadDashboard();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const student = dashboard?.student || authUser || {};
+  const overview = dashboard?.overview || {};
+  const latestApplication = dashboard?.latest_application;
+  const recentApplications = dashboard?.recent_applications || [];
+  const vehicles = dashboard?.vehicles || [];
+  const documents = dashboard?.documents || [];
+  const activeSemester = dashboard?.active_semester;
+
+  const quickStats = [
+    {
+      label: "Applications",
+      value: overview.total_applications ?? 0,
+      hint: `${overview.pending_applications ?? 0} pending`,
+    },
+    {
+      label: "Approved",
+      value: overview.approved_applications ?? 0,
+      hint: `${overview.rejected_applications ?? 0} rejected`,
+    },
+    {
+      label: "Vehicles",
+      value: overview.total_vehicles ?? 0,
+      hint: "Saved for permits",
+    },
+    {
+      label: "Documents",
+      value: overview.total_documents ?? 0,
+      hint: `${overview.verified_documents ?? 0} verified`,
+    },
+  ];
+
+  return (
+    <div className="pk-student-shell min-h-screen text-slate-100">
+      <div className="pk-student-backdrop" />
+
+      <main className="relative mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
+        <section className="pk-student-hero overflow-hidden rounded-[28px] border border-white/10 px-6 py-7 shadow-[0_30px_120px_-60px_rgba(45,212,191,0.45)] sm:px-8 lg:px-10 lg:py-9">
+          <div className="grid gap-8 lg:grid-cols-[1.3fr_0.9fr] lg:items-end">
+            <div className="space-y-5">
+              <span className="pk-student-kicker inline-flex items-center gap-2 rounded-full border border-teal-400/30 bg-teal-400/10 px-4 py-1.5 text-[0.72rem] font-semibold uppercase tracking-[0.24em] text-teal-300">
+                Student Portal
+              </span>
+
+              <div className="space-y-3">
+                <h1 className="pk-student-title max-w-3xl text-4xl leading-tight sm:text-5xl">
+                  Welcome back, <span>{student?.name || "Student"}</span>
+                </h1>
+                <p className="max-w-2xl text-sm leading-7 text-slate-300/80 sm:text-base">
+                  Track your parking permit progress, review recent submissions, and
+                  manage vehicles and documents from one dashboard built to match the
+                  ParKar home experience.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                <Link
+                  to="/student/apply"
+                  className="inline-flex items-center justify-center rounded-full bg-teal-400 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:-translate-y-0.5 hover:bg-white"
+                >
+                  Apply for Parking
+                </Link>
+                <Link
+                  to="/student/history"
+                  className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/5 px-5 py-3 text-sm font-semibold text-slate-100 transition hover:border-teal-300/40 hover:text-teal-200"
+                >
+                  View History
+                </Link>
+                <Link
+                  to="/profile"
+                  className="inline-flex items-center justify-center rounded-full border border-white/15 bg-transparent px-5 py-3 text-sm font-semibold text-slate-300 transition hover:border-white/30 hover:text-white"
+                >
+                  Edit Profile
+                </Link>
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              {quickStats.map((item) => (
+                <article
+                  key={item.label}
+                  className="rounded-3xl border border-white/10 bg-white/6 p-5 backdrop-blur"
+                >
+                  <p className="text-xs uppercase tracking-[0.22em] text-slate-400">
+                    {item.label}
+                  </p>
+                  <p className="mt-3 text-3xl font-semibold text-white">{item.value}</p>
+                  <p className="mt-2 text-sm text-slate-400">{item.hint}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {error ? (
+          <div className="rounded-2xl border border-rose-400/30 bg-rose-400/10 px-5 py-4 text-sm text-rose-100">
+            {error}
+          </div>
+        ) : null}
+
+        {loading ? (
+          <section className="grid gap-5 lg:grid-cols-[1.35fr_0.95fr]">
+            <div className="rounded-[24px] border border-white/10 bg-white/5 p-6">
+              <div className="h-8 w-48 animate-pulse rounded-full bg-white/10" />
+              <div className="mt-6 h-48 animate-pulse rounded-[20px] bg-white/5" />
+            </div>
+            <div className="rounded-[24px] border border-white/10 bg-white/5 p-6">
+              <div className="h-8 w-40 animate-pulse rounded-full bg-white/10" />
+              <div className="mt-6 space-y-3">
+                <div className="h-16 animate-pulse rounded-2xl bg-white/5" />
+                <div className="h-16 animate-pulse rounded-2xl bg-white/5" />
+                <div className="h-16 animate-pulse rounded-2xl bg-white/5" />
+              </div>
+            </div>
+          </section>
+        ) : (
+          <>
+            <section className="grid gap-5 lg:grid-cols-[1.35fr_0.95fr]">
+              <article className="rounded-[24px] border border-white/10 bg-[#111418]/90 p-6 shadow-[0_20px_80px_-48px_rgba(0,0,0,0.8)]">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.2em] text-teal-300">
+                      Current Permit Status
+                    </p>
+                    <h2 className="mt-2 text-2xl font-semibold text-white">
+                      {latestApplication ? `Application #${latestApplication.id}` : "No application yet"}
+                    </h2>
+                  </div>
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${statusTone(latestApplication?.status)}`}
+                  >
+                    {latestApplication?.status || "Not Started"}
+                  </span>
+                </div>
+
+                <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                  <div className="rounded-2xl border border-white/8 bg-white/5 p-4">
+                    <p className="text-xs uppercase tracking-[0.18em] text-slate-400">
+                      Active Semester
+                    </p>
+                    <p className="mt-2 text-lg font-semibold text-white">
+                      {activeSemester?.name || "No active semester"}
+                    </p>
+                    <p className="mt-2 text-sm text-slate-400">
+                      {activeSemester
+                        ? `${formatDate(activeSemester.start_date)} - ${formatDate(activeSemester.end_date)}`
+                        : "Semester schedule is not available yet."}
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-white/8 bg-white/5 p-4">
+                    <p className="text-xs uppercase tracking-[0.18em] text-slate-400">
+                      Latest Ticket
+                    </p>
+                    <p className="mt-2 text-lg font-semibold text-white">
+                      {latestApplication?.ticket?.ticket_id || "Not issued"}
+                    </p>
+                    <p className="mt-2 text-sm text-slate-400">
+                      Slot: {latestApplication?.ticket?.parking_slot || "Not assigned"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                  <div className="rounded-2xl border border-white/8 bg-[#0b0d10] p-4">
+                    <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
+                      Submission Time
+                    </p>
+                    <p className="mt-2 text-base font-medium text-slate-100">
+                      {latestApplication ? formatDateTime(latestApplication.created_at) : "No submission yet"}
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-white/8 bg-[#0b0d10] p-4">
+                    <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
+                      Vehicle
+                    </p>
+                    <p className="mt-2 text-base font-medium text-slate-100">
+                      {latestApplication?.vehicle
+                        ? `${latestApplication.vehicle.brand} ${latestApplication.vehicle.model}`
+                        : "No vehicle linked yet"}
+                    </p>
+                    <p className="mt-1 text-sm text-slate-400">
+                      Plate: {latestApplication?.vehicle?.plate_number || "N/A"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-6 rounded-2xl border border-white/8 bg-white/5 p-4">
+                  <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
+                    Admin Note
+                  </p>
+                  <p className="mt-2 text-sm leading-7 text-slate-300">
+                    {latestApplication?.admin_comment ||
+                      "No admin comment yet. Your latest application will show review feedback here."}
+                  </p>
+                </div>
+              </article>
+
+              <article className="rounded-[24px] border border-white/10 bg-[#111418]/90 p-6 shadow-[0_20px_80px_-48px_rgba(0,0,0,0.8)]">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.2em] text-teal-300">
+                      Profile Snapshot
+                    </p>
+                    <h2 className="mt-2 text-2xl font-semibold text-white">
+                      Account Details
+                    </h2>
+                  </div>
+                  <Link
+                    to="/logout"
+                    className="rounded-full border border-white/15 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-teal-300/40 hover:text-teal-200"
+                  >
+                    Logout
+                  </Link>
+                </div>
+
+                <div className="mt-6 space-y-3">
+                  {[
+                    ["University ID", student?.university_id || "N/A"],
+                    ["Email", student?.email || "N/A"],
+                    ["Phone", student?.phone || "N/A"],
+                    ["Department", student?.department || "Not set"],
+                    ["Verified", student?.email_verified_at ? "Email verified" : "Pending verification"],
+                    [
+                      "Semester Fee",
+                      activeSemester?.semester_fee ? `BDT ${activeSemester.semester_fee}` : "Unavailable",
+                    ],
+                  ].map(([label, value]) => (
+                    <div
+                      key={label}
+                      className="flex items-center justify-between gap-4 rounded-2xl border border-white/8 bg-white/5 px-4 py-3"
+                    >
+                      <span className="text-sm text-slate-400">{label}</span>
+                      <span className="text-sm font-medium text-slate-100">{value}</span>
+                    </div>
+                  ))}
+                </div>
+              </article>
+            </section>
+
+            <section className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
+              <article className="rounded-[24px] border border-white/10 bg-[#111418]/90 p-6">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.2em] text-teal-300">
+                      Recent Activity
+                    </p>
+                    <h2 className="mt-2 text-2xl font-semibold text-white">
+                      Recent Applications
+                    </h2>
+                  </div>
+                  <Link
+                    to="/student/history"
+                    className="text-sm font-semibold text-teal-300 transition hover:text-white"
+                  >
+                    Full history
+                  </Link>
+                </div>
+
+                <div className="mt-6 space-y-4">
+                  {recentApplications.length ? (
+                    recentApplications.map((application) => (
+                      <div
+                        key={application.id}
+                        className="rounded-[22px] border border-white/8 bg-[#0b0d10] p-4"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div>
+                            <p className="text-lg font-semibold text-white">
+                              Application #{application.id}
+                            </p>
+                            <p className="mt-1 text-sm text-slate-400">
+                              {application?.semester?.name || "Semester unavailable"}
+                            </p>
+                          </div>
+                          <span
+                            className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${statusTone(application.status)}`}
+                          >
+                            {application.status}
+                          </span>
+                        </div>
+
+                        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                          <div>
+                            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
+                              Submitted
+                            </p>
+                            <p className="mt-1 text-sm text-slate-300">
+                              {formatDateTime(application.created_at)}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
+                              Vehicle
+                            </p>
+                            <p className="mt-1 text-sm text-slate-300">
+                              {application?.vehicle
+                                ? `${application.vehicle.brand} ${application.vehicle.model} (${application.vehicle.plate_number})`
+                                : "Vehicle not found"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="rounded-[22px] border border-dashed border-white/15 bg-white/[0.03] p-5 text-sm text-slate-400">
+                      You have not submitted any parking application yet.
+                    </div>
+                  )}
+                </div>
+              </article>
+
+              <div className="grid gap-5">
+                <article className="rounded-[24px] border border-white/10 bg-[#111418]/90 p-6">
+                  <div>
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.2em] text-teal-300">
+                        Vehicles
+                      </p>
+                      <h2 className="mt-2 text-2xl font-semibold text-white">
+                        Registered Vehicles
+                      </h2>
+                    </div>
+                  </div>
+
+                  <div className="pk-student-vehicle-list mt-6 space-y-3">
+                    {vehicles.length ? (
+                      vehicles.map((vehicle) => (
+                        <div
+                          key={vehicle.id}
+                          className="rounded-2xl border border-white/8 bg-white/5 px-4 py-4"
+                        >
+                          <p className="font-semibold text-white">
+                            {vehicle.brand} {vehicle.model}
+                          </p>
+                          <p className="mt-1 text-sm text-slate-400">
+                            {formatLabel(vehicle.vehicle_type)} | {vehicle.color}
+                          </p>
+                          <p className="mt-2 text-sm text-teal-200">
+                            Plate: {vehicle.plate_number}
+                          </p>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="rounded-2xl border border-dashed border-white/15 bg-white/[0.03] px-4 py-4 text-sm text-slate-400">
+                        No saved vehicles yet.
+                      </p>
+                    )}
+                  </div>
+                </article>
+
+                <article className="rounded-[24px] border border-white/10 bg-[#111418]/90 p-6">
+                  <div>
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.2em] text-teal-300">
+                        Documents
+                      </p>
+                      <h2 className="mt-2 text-2xl font-semibold text-white">
+                        Latest Uploads
+                      </h2>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 space-y-3">
+                    {documents.length ? (
+                      documents.slice(0, 4).map((document) => (
+                        <div
+                          key={document.id}
+                          className="flex items-center justify-between gap-4 rounded-2xl border border-white/8 bg-white/5 px-4 py-3"
+                        >
+                          <div>
+                            <p className="font-medium text-white">
+                              {formatLabel(document.document_type)}
+                            </p>
+                            <p className="mt-1 text-xs uppercase tracking-[0.18em] text-slate-500">
+                              Uploaded {formatDate(document.created_at)}
+                            </p>
+                          </div>
+                          <span
+                            className={`rounded-full px-3 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.16em] ${
+                              document.is_verified
+                                ? "pk-student-badge-success"
+                                : "pk-student-badge-warning"
+                            }`}
+                          >
+                            {document.is_verified ? "Verified" : "Pending"}
+                          </span>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="rounded-2xl border border-dashed border-white/15 bg-white/[0.03] px-4 py-4 text-sm text-slate-400">
+                        No uploaded documents yet.
+                      </p>
+                    )}
+                  </div>
+                </article>
+              </div>
+            </section>
+          </>
+        )}
       </main>
     </div>
   );

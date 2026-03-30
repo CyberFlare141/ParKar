@@ -7,6 +7,7 @@ use App\Models\Document;
 use App\Models\ParkingApplication;
 use App\Models\Semester;
 use App\Models\Vehicle;
+use DateTimeInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -31,6 +32,111 @@ class StudentParkingApplicationController extends Controller
 
         return response()->json([
             'data' => $semesters,
+        ]);
+    }
+
+    public function dashboard(Request $request): JsonResponse
+    {
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+
+        $activeSemester = Semester::query()
+            ->where('is_active', true)
+            ->orderByDesc('start_date')
+            ->first(['id', 'name', 'start_date', 'end_date', 'vehicle_quota', 'semester_fee']);
+
+        $applications = ParkingApplication::query()
+            ->with([
+                'semester:id,name,start_date,end_date',
+                'vehicle:id,plate_number,vehicle_type,brand,model,color,registration_number',
+                'documents:id,document_type,file_path,is_verified,created_at',
+                'parkingTicket:id,ticket_id,application_id,issue_date,parking_slot',
+            ])
+            ->where('user_id', $user->id)
+            ->orderByDesc('created_at')
+            ->get();
+
+        $vehicles = Vehicle::query()
+            ->where('user_id', $user->id)
+            ->orderByDesc('id')
+            ->get([
+                'id',
+                'plate_number',
+                'vehicle_type',
+                'brand',
+                'model',
+                'color',
+                'registration_number',
+                'created_at',
+            ]);
+
+        $documents = Document::query()
+            ->where('user_id', $user->id)
+            ->orderByDesc('id')
+            ->get([
+                'id',
+                'document_type',
+                'file_path',
+                'is_verified',
+                'created_at',
+            ]);
+
+        $latestApplication = $applications->first();
+
+        return response()->json([
+            'data' => [
+                'student' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'phone' => $user->phone,
+                    'university_id' => $user->university_id,
+                    'department' => $user->department,
+                    'role' => $user->role,
+                    'email_verified_at' => $this->toIsoString($user->email_verified_at),
+                ],
+                'active_semester' => $activeSemester ? [
+                    'id' => $activeSemester->id,
+                    'name' => $activeSemester->name,
+                    'start_date' => $activeSemester->start_date,
+                    'end_date' => $activeSemester->end_date,
+                    'vehicle_quota' => $activeSemester->vehicle_quota,
+                    'semester_fee' => $activeSemester->semester_fee,
+                ] : null,
+                'overview' => [
+                    'total_applications' => $applications->count(),
+                    'approved_applications' => $applications->where('status', 'approved')->count(),
+                    'pending_applications' => $applications->where('status', 'pending')->count(),
+                    'rejected_applications' => $applications->where('status', 'rejected')->count(),
+                    'total_vehicles' => $vehicles->count(),
+                    'total_documents' => $documents->count(),
+                    'verified_documents' => $documents->where('is_verified', true)->count(),
+                ],
+                'latest_application' => $latestApplication
+                    ? $this->toStudentApplicationSummary($latestApplication)
+                    : null,
+                'recent_applications' => $applications
+                    ->take(5)
+                    ->map(fn (ParkingApplication $application): array => $this->toStudentApplicationSummary($application))
+                    ->values(),
+                'vehicles' => $vehicles->map(fn (Vehicle $vehicle): array => [
+                    'id' => $vehicle->id,
+                    'plate_number' => $vehicle->plate_number,
+                    'vehicle_type' => $vehicle->vehicle_type,
+                    'brand' => $vehicle->brand,
+                    'model' => $vehicle->model,
+                    'color' => $vehicle->color,
+                    'registration_number' => $vehicle->registration_number,
+                    'created_at' => $this->toIsoString($vehicle->created_at),
+                ])->values(),
+                'documents' => $documents->map(fn (Document $document): array => [
+                    'id' => $document->id,
+                    'document_type' => $document->document_type,
+                    'file_path' => $document->file_path,
+                    'is_verified' => (bool) $document->is_verified,
+                    'created_at' => $this->toIsoString($document->created_at),
+                ])->values(),
+            ],
         ]);
     }
 
@@ -157,5 +263,55 @@ class StudentParkingApplicationController extends Controller
                 'message' => 'Failed to submit parking application. Please try again.',
             ], 500);
         }
+    }
+
+    private function toStudentApplicationSummary(ParkingApplication $application): array
+    {
+        return [
+            'id' => $application->id,
+            'status' => $application->status,
+            'created_at' => $this->toIsoString($application->created_at),
+            'reviewed_at' => $this->toIsoString($application->reviewed_at),
+            'admin_comment' => $application->admin_comment,
+            'semester' => $application->semester ? [
+                'id' => $application->semester->id,
+                'name' => $application->semester->name,
+                'start_date' => $application->semester->start_date,
+                'end_date' => $application->semester->end_date,
+            ] : null,
+            'vehicle' => $application->vehicle ? [
+                'id' => $application->vehicle->id,
+                'plate_number' => $application->vehicle->plate_number,
+                'vehicle_type' => $application->vehicle->vehicle_type,
+                'brand' => $application->vehicle->brand,
+                'model' => $application->vehicle->model,
+                'color' => $application->vehicle->color,
+                'registration_number' => $application->vehicle->registration_number,
+            ] : null,
+            'ticket' => $application->parkingTicket ? [
+                'ticket_id' => $application->parkingTicket->ticket_id,
+                'issue_date' => $this->toIsoString($application->parkingTicket->issue_date),
+                'parking_slot' => $application->parkingTicket->parking_slot,
+            ] : null,
+            'documents' => $application->documents->map(fn (Document $document): array => [
+                'id' => $document->id,
+                'document_type' => $document->document_type,
+                'is_verified' => (bool) $document->is_verified,
+                'created_at' => $this->toIsoString($document->created_at),
+            ])->values(),
+        ];
+    }
+
+    private function toIsoString(mixed $value): ?string
+    {
+        if ($value instanceof DateTimeInterface) {
+            return $value->format(DateTimeInterface::ATOM);
+        }
+
+        if (is_string($value) && trim($value) !== '') {
+            return $value;
+        }
+
+        return null;
     }
 }

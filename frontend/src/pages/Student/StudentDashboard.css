@@ -1,0 +1,117 @@
+@import url("https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@400;500;600;700&display=swap");
+
+.pk-student-shell {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at top center, rgba(45, 212, 191, 0.16), transparent 28%),
+    radial-gradient(circle at 85% 18%, rgba(56, 189, 248, 0.12), transparent 22%),
+    linear-gradient(180deg, #0b0d10 0%, #101419 42%, #0b0d10 100%);
+  font-family: "DM Sans", system-ui, sans-serif;
+}
+
+.pk-student-backdrop {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 54px 54px;
+  mask-image: radial-gradient(circle at center, black 38%, transparent 100%);
+  opacity: 0.45;
+}
+
+.pk-student-hero {
+  position: relative;
+  background:
+    linear-gradient(135deg, rgba(17, 20, 24, 0.96), rgba(11, 13, 16, 0.92)),
+    linear-gradient(180deg, rgba(45, 212, 191, 0.07), transparent);
+}
+
+.pk-student-hero::before {
+  content: "";
+  position: absolute;
+  inset: -20% auto auto -10%;
+  width: 260px;
+  height: 260px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(45, 212, 191, 0.22), transparent 70%);
+  filter: blur(18px);
+  pointer-events: none;
+}
+
+.pk-student-hero::after {
+  content: "";
+  position: absolute;
+  right: -40px;
+  bottom: -60px;
+  width: 260px;
+  height: 260px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.16), transparent 72%);
+  filter: blur(16px);
+  pointer-events: none;
+}
+
+.pk-student-kicker {
+  backdrop-filter: blur(12px);
+}
+
+.pk-student-title {
+  font-family: "Instrument Serif", serif;
+  letter-spacing: -0.04em;
+}
+
+.pk-student-title span {
+  color: #2dd4bf;
+  font-style: italic;
+}
+
+.pk-student-badge-success {
+  background: rgba(45, 212, 191, 0.16);
+  color: #99f6e4;
+  border: 1px solid rgba(45, 212, 191, 0.28);
+}
+
+.pk-student-badge-warning {
+  background: rgba(250, 204, 21, 0.16);
+  color: #fde68a;
+  border: 1px solid rgba(250, 204, 21, 0.28);
+}
+
+.pk-student-badge-danger {
+  background: rgba(248, 113, 113, 0.16);
+  color: #fecaca;
+  border: 1px solid rgba(248, 113, 113, 0.28);
+}
+
+.pk-student-vehicle-list {
+  max-height: 23rem;
+  overflow-y: auto;
+  padding-right: 0.35rem;
+}
+
+.pk-student-vehicle-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.pk-student-vehicle-list::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 999px;
+}
+
+.pk-student-vehicle-list::-webkit-scrollbar-thumb {
+  background: rgba(45, 212, 191, 0.45);
+  border-radius: 999px;
+}
+
+@media (max-width: 640px) {
+  .pk-student-backdrop {
+    background-size: 38px 38px;
+  }
+
+  .pk-student-title {
+    font-size: 2.35rem;
+  }
+}
