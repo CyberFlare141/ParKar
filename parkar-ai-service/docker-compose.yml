@@ -1,0 +1,32 @@
+version: "3.9"
+
+services:
+
+  # ── ParKar Laravel backend ──────────────────────────────────────────────────
+  parkar-api:
+    build:
+      context: ./ParKar          # your existing Laravel project folder
+      dockerfile: Dockerfile     # your existing Laravel Dockerfile (if any)
+    ports:
+      - "8000:8000"
+    environment:
+      AI_SERVICE_URL: "http://parkar-ai:5001"
+    depends_on:
+      - parkar-ai
+    networks:
+      - parkar-net
+
+  # ── AI Document Verification Microservice ───────────────────────────────────
+  parkar-ai:
+    build:
+      context: ./parkar-ai-service
+      dockerfile: Dockerfile
+    ports:
+      - "5001:5001"
+    restart: unless-stopped
+    networks:
+      - parkar-net
+
+networks:
+  parkar-net:
+    driver: bridge

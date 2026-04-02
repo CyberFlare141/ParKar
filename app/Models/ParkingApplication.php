@@ -60,4 +60,9 @@ class ParkingApplication extends Model
     {
         return $this->hasOne(ParkingTicket::class, 'application_id');
     }
+
+    public function aiAnalysis(): HasOne
+    {
+        return $this->hasOne(AiAnalysis::class, 'application_id');
+    }
 }

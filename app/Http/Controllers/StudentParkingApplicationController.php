@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Services\Ai\AiDocumentService;
+use App\Models\AiAnalysis;
 use App\Models\ApplicationDocument;
 use App\Models\Document;
 use App\Models\ParkingApplication;
@@ -22,6 +24,15 @@ class StudentParkingApplicationController extends Controller
         'university_id_card' => 'id_card',
         'vehicle_photo' => 'vehicle_photo',
     ];
+
+    private const AI_REQUIRED_CAR_DOCUMENT_TYPES = [
+        'registration',
+        'license',
+    ];
+
+    public function __construct(private readonly AiDocumentService $aiDocumentService)
+    {
+    }
 
     public function semesters(): JsonResponse
     {
@@ -186,6 +197,57 @@ class StudentParkingApplicationController extends Controller
         /** @var \App\Models\User $user */
         $user = $request->user();
 
+        $aiResultsByField = [];
+        $rejections = [];
+
+        foreach (self::DOCUMENT_FIELD_TO_TYPE as $field => $documentType) {
+            $file = $request->file("documents.$field");
+            $result = $this->aiDocumentService->analyse($file);
+            $aiResultsByField[$field] = [
+                'field' => $field,
+                'document_type' => $documentType,
+                'is_car_document' => (bool) ($result['is_car_document'] ?? false),
+                'clarity' => (string) ($result['clarity'] ?? 'unclear'),
+                'confidence' => round((float) ($result['confidence'] ?? 0), 4),
+                'issues' => array_values(array_map('strval', (array) ($result['issues'] ?? []))),
+                'error' => isset($result['error']) && $result['error'] !== null
+                    ? (string) $result['error']
+                    : null,
+            ];
+
+            $hasServiceError = !empty($aiResultsByField[$field]['error']);
+            $clarity = $aiResultsByField[$field]['clarity'];
+            $issues = $aiResultsByField[$field]['issues'];
+
+            if (!$hasServiceError && $clarity === 'unclear') {
+                $rejections[] = [
+                    'field' => $field,
+                    'document_type' => $documentType,
+                    'reason' => 'Image quality issues: ' . ($issues ? implode(', ', $issues) : 'unclear image'),
+                ];
+            }
+
+            if (
+                !$hasServiceError
+                && in_array($documentType, self::AI_REQUIRED_CAR_DOCUMENT_TYPES, true)
+                && !$aiResultsByField[$field]['is_car_document']
+            ) {
+                $rejections[] = [
+                    'field' => $field,
+                    'document_type' => $documentType,
+                    'reason' => 'The uploaded file does not appear to be a valid car document.',
+                ];
+            }
+        }
+
+        if ($rejections !== []) {
+            return response()->json([
+                'message' => 'One or more documents failed AI verification. Please re-upload clearer images.',
+                'rejections' => $rejections,
+                'ai_verification' => $this->buildAiVerificationPayload($aiResultsByField, false, true),
+            ], 422);
+        }
+
         $storedPaths = [];
 
         try {
@@ -241,6 +303,13 @@ class StudentParkingApplicationController extends Controller
                 ]);
             }
 
+            AiAnalysis::query()->create([
+                'application_id' => $application->id,
+                'risk_score' => $this->calculateRiskScore($aiResultsByField),
+                'renewal_recommendation' => false,
+                'raw_response' => $aiResultsByField,
+            ]);
+
             DB::commit();
 
             return response()->json([
@@ -248,6 +317,7 @@ class StudentParkingApplicationController extends Controller
                 'data' => [
                     'application_id' => $application->id,
                     'status' => $application->status,
+                    'ai_verification' => $this->buildAiVerificationPayload($aiResultsByField, true, false),
                 ],
             ], 201);
         } catch (Throwable $exception) {
@@ -263,6 +333,50 @@ class StudentParkingApplicationController extends Controller
                 'message' => 'Failed to submit parking application. Please try again.',
             ], 500);
         }
+    }
+
+    private function buildAiVerificationPayload(array $resultsByField, bool $passed, bool $rejected): array
+    {
+        $documents = array_values(array_map(
+            fn (array $result): array => [
+                'field' => $result['field'],
+                'document_type' => $result['document_type'],
+                'is_car_document' => $result['is_car_document'],
+                'clarity' => $result['clarity'],
+                'confidence' => $result['confidence'],
+                'issues' => $result['issues'],
+                'error' => $result['error'],
+            ],
+            $resultsByField
+        ));
+
+        $hasManualReview = collect($documents)->contains(
+            fn (array $document): bool => !empty($document['error'])
+        );
+
+        return [
+            'passed' => $passed,
+            'rejected' => $rejected,
+            'manual_review' => $hasManualReview,
+            'summary' => $documents,
+        ];
+    }
+
+    private function calculateRiskScore(array $resultsByField): float
+    {
+        if ($resultsByField === []) {
+            return 0.0;
+        }
+
+        $totalRisk = collect($resultsByField)->sum(function (array $result): float {
+            $confidenceRisk = 1 - max(0, min(1, (float) $result['confidence']));
+            $issueRisk = min(0.35, count($result['issues']) * 0.08);
+            $manualReviewRisk = !empty($result['error']) ? 0.2 : 0.0;
+
+            return min(1, $confidenceRisk + $issueRisk + $manualReviewRisk);
+        });
+
+        return round($totalRisk / count($resultsByField), 4);
     }
 
     private function toStudentApplicationSummary(ParkingApplication $application): array

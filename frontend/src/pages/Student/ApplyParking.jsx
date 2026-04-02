@@ -48,6 +48,64 @@ const initialValues = {
   nda_signed: false,
 };
 
+function formatDocumentLabel(key) {
+  return key
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function formatAiIssue(issue) {
+  if (!issue) {
+    return "No issues detected";
+  }
+
+  return String(issue)
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function buildAiModalState(aiVerification, fallbackTitle, fallbackMessage) {
+  const summary = Array.isArray(aiVerification?.summary) ? aiVerification.summary : [];
+  const hasManualReview = Boolean(aiVerification?.manual_review);
+  const passed = Boolean(aiVerification?.passed);
+  const rejected = Boolean(aiVerification?.rejected);
+
+  let tone = "info";
+  let title = fallbackTitle;
+  let message = fallbackMessage;
+
+  if (rejected) {
+    tone = "error";
+    title = "AI Verification Needs New Uploads";
+    message = "Some documents did not pass the AI checks. Please review the flagged files and upload clearer copies.";
+  } else if (passed && hasManualReview) {
+    tone = "warning";
+    title = "AI Check Sent To Manual Review";
+    message = "Your application was submitted, but at least one document could not be checked automatically.";
+  } else if (passed) {
+    tone = "success";
+    title = "AI Verification Passed";
+    message = "Your documents were checked successfully and the application was submitted.";
+  }
+
+  return {
+    open: true,
+    tone,
+    title,
+    message,
+    documents: summary.map((item) => ({
+      label: formatDocumentLabel(item?.field || item?.document_type || "document"),
+      clarity: item?.clarity || "unknown",
+      confidence: Math.round(Number(item?.confidence || 0) * 100),
+      issues: Array.isArray(item?.issues) ? item.issues : [],
+      error: item?.error || "",
+      isCarDocument: Boolean(item?.is_car_document),
+      documentType: item?.document_type || "",
+    })),
+  };
+}
+
 function formatSemesterLabel(semester) {
   const name = String(
     semester?.name ||
@@ -89,6 +147,13 @@ export default function ApplyParking() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasAvailableSemesters, setHasAvailableSemesters] = useState(true);
+  const [aiModal, setAiModal] = useState({
+    open: false,
+    tone: "info",
+    title: "",
+    message: "",
+    documents: [],
+  });
 
   useEffect(() => {
     let isMounted = true;
@@ -201,6 +266,13 @@ export default function ApplyParking() {
     setFeedback("");
   };
 
+  const closeAiModal = () => {
+    setAiModal((prev) => ({
+      ...prev,
+      open: false,
+    }));
+  };
+
   const validate = () => {
     const nextErrors = {};
 
@@ -302,6 +374,15 @@ export default function ApplyParking() {
       );
 
       setFeedback(response?.data?.message || "Application submitted successfully.");
+      if (response?.data?.data?.ai_verification) {
+        setAiModal(
+          buildAiModalState(
+            response.data.data.ai_verification,
+            "AI Verification Complete",
+            "Your upload was checked by AI.",
+          ),
+        );
+      }
       setDocuments({});
       setErrors({});
       setValues((prev) => ({
@@ -315,6 +396,9 @@ export default function ApplyParking() {
     } catch (error) {
       const responseErrors = error?.response?.data?.errors || {};
       const nextErrors = {};
+      const rejectionItems = Array.isArray(error?.response?.data?.rejections)
+        ? error.response.data.rejections
+        : [];
 
       if (error?.response?.status === 401) {
         setFeedback("Your session has expired. Please login again, then resubmit.");
@@ -330,11 +414,28 @@ export default function ApplyParking() {
         nextErrors[field] = Array.isArray(messages) ? messages[0] : String(messages);
       });
 
+      rejectionItems.forEach((item) => {
+        if (item?.field) {
+          nextErrors[item.field] = item.reason || "This document failed AI verification.";
+        }
+      });
+
       setErrors((prev) => ({ ...prev, ...nextErrors }));
       if (error?.response?.status === 413) {
         setFeedback("Upload is too large. Please use smaller files (total under 25MB).");
         return;
       }
+
+      if (error?.response?.status === 422 && error?.response?.data?.ai_verification) {
+        setAiModal(
+          buildAiModalState(
+            error.response.data.ai_verification,
+            "AI Verification Complete",
+            "Your upload was checked by AI.",
+          ),
+        );
+      }
+
       setFeedback(
         error?.response?.data?.message || "Failed to submit application. Please try again.",
       );
@@ -600,6 +701,58 @@ export default function ApplyParking() {
           </div>
         </form>
       </div>
+
+      {aiModal.open ? (
+        <div className="ai-modal-overlay" onClick={closeAiModal}>
+          <div
+            className={`ai-modal ai-modal-${aiModal.tone}`}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="ai-modal-header">
+              <div>
+                <p className="ai-modal-kicker">ParKar AI Check</p>
+                <h3>{aiModal.title}</h3>
+              </div>
+              <button type="button" className="ai-modal-close" onClick={closeAiModal}>
+                Close
+              </button>
+            </div>
+
+            <p className="ai-modal-message">{aiModal.message}</p>
+
+            <div className="ai-modal-list">
+              {aiModal.documents.map((item) => (
+                <article key={item.label} className="ai-modal-card">
+                  <div className="ai-modal-card-top">
+                    <strong>{item.label}</strong>
+                    <span className={`ai-badge ai-badge-${item.clarity}`}>
+                      {item.clarity}
+                    </span>
+                  </div>
+                  <p>
+                    Confidence: <strong>{item.confidence}%</strong>
+                  </p>
+                  {item.documentType === "registration" || item.documentType === "license" ? (
+                    <p>
+                      Document match:{" "}
+                      <strong>{item.isCarDocument ? "Matched" : "Not matched"}</strong>
+                    </p>
+                  ) : null}
+                  {item.error ? (
+                    <p className="ai-modal-note">{item.error}</p>
+                  ) : item.issues.length ? (
+                    <p className="ai-modal-note">
+                      Issues: {item.issues.map(formatAiIssue).join(", ")}
+                    </p>
+                  ) : (
+                    <p className="ai-modal-note">No issues detected.</p>
+                  )}
+                </article>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -31,4 +31,9 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'ai_document' => [
+        'url' => env('AI_SERVICE_URL', 'http://localhost:5001'),
+        'timeout' => (int) env('AI_SERVICE_TIMEOUT', 30),
+    ],
+
 ];
