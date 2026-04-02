@@ -1,0 +1,6 @@
+flask>=3.0,<4.0
+opencv-python-headless>=4.9,<5.0
+pytesseract>=0.3.10
+Pillow>=10.0
+numpy>=1.26
+gunicorn>=21.0         # production WSGI server

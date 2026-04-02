@@ -4,10 +4,9 @@ docker compose up -d --build
 docker exec -it parkar_app php artisan key:generate
 docker exec -it parkar_app php artisan migrate
 
-
-docker compose exec app php artisan migrate:fresh --seed   // This drops previous tables and reseeds semesters
+ 
+docker compose exec app php artisan migrate:fresh  //THis drop previous table
 docker compose up -d   for regular run
 
 
-Frontend: http://localhost:5173
-Backend API: http://localhost:18080/api/health
+Now check: http://localhost:8000/api/health
