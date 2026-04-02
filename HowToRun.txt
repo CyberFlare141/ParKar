@@ -9,6 +9,13 @@ docker compose exec app php artisan migrate:fresh  //THis drop previous table
 docker compose up -d   for regular run
 
 
-Now check: http://localhost:18080/api/health
+Now check: http://localhost:8000/api/health
 
-AI service should also be reachable at: http://localhost:5001/analyse
+cd f:\ParKar\ParKar\parkar-ai-service
+docker build -t parkar-ai .
+docker run -p 5001:5001 parkar-ai
+
+change folder path in line 14
+
+docker compose exec app php artisan migrate:fresh --seed 
+
