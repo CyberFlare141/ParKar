@@ -28,7 +28,7 @@ client.interceptors.request.use((config) => {
   }
 
   config.headers = config.headers || {};
-  config.headers.Authorization = Bearer ${token};
+  config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 

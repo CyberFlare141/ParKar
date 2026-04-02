@@ -10,3 +10,12 @@ docker compose up -d   for regular run
 
 
 Now check: http://localhost:8000/api/health
+
+cd f:\ParKar\ParKar\parkar-ai-service
+docker build -t parkar-ai .
+docker run -p 5001:5001 parkar-ai
+
+change folder path in line 14
+
+docker compose exec app php artisan migrate:fresh --seed 
+

@@ -7,9 +7,13 @@ services:
     volumes:
       - .:/var/www
       - /var/www/vendor
+    environment:
+      - AI_SERVICE_URL=http://parkar_ai:5001
+      - AI_SERVICE_TIMEOUT=30
     depends_on:
       - mysql
       - mailpit
+      - ai
     networks:
       - parkar
 
@@ -71,6 +75,17 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
+    networks:
+      - parkar
+
+  ai:
+    build:
+      context: ./parkar-ai-service
+      dockerfile: ./Dockerfile
+    container_name: parkar_ai
+    restart: unless-stopped
+    ports:
+      - "5001:5001"
     networks:
       - parkar
 

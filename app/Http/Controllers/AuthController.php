@@ -7,6 +7,7 @@ use App\Http\Services\Auth\OtpService;
 use App\Http\Services\Auth\RoleDetectionService;
 use App\Models\AuthOtp;
 use App\Models\User;
+use App\Support\AdminPresence;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -173,8 +174,10 @@ class AuthController extends Controller
 
         if ($payload['purpose'] === 'register' && !$user->email_verified_at) {
             $user->email_verified_at = now();
-            $user->save();
         }
+
+        $user->save();
+        AdminPresence::markOnline($user, (int) config('jwt.ttl_minutes', 60));
 
         AuthOtp::query()
             ->where('user_id', $user->id)
@@ -228,6 +231,8 @@ class AuthController extends Controller
             ->whereNull('consumed_at')
             ->whereNull('invalidated_at')
             ->update(['invalidated_at' => now()]);
+
+        AdminPresence::markOffline($user, (int) config('jwt.ttl_minutes', 60));
 
         return response()->json([
             'message' => 'Logged out successfully.',

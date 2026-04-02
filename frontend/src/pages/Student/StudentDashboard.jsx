@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import client from "../../api/client";
 import { ENDPOINTS } from "../../api/endpoints";
@@ -42,44 +42,59 @@ function statusTone(status) {
   return "pk-student-badge-warning";
 }
 
+const AUTO_REFRESH_INTERVAL_MS = 10000;
+
 export default function StudentDashboard() {
   const authUser = getAuthUser();
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+  const [lastUpdated, setLastUpdated] = useState(null);
+
+  const loadDashboard = useCallback(async (isRefresh = false) => {
+    try {
+      setError("");
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+
+      const response = await client.get(ENDPOINTS.STUDENT_DASHBOARD, {
+        skipAuthRedirect: true,
+      });
+
+      setDashboard(response?.data?.data || null);
+      setLastUpdated(new Date().toISOString());
+    } catch (loadError) {
+      setError(
+        loadError?.response?.data?.message || "Failed to load your dashboard.",
+      );
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
 
   useEffect(() => {
-    let active = true;
+    loadDashboard(false);
 
-    async function loadDashboard() {
-      try {
-        setLoading(true);
-        setError("");
+    const intervalId = window.setInterval(() => {
+      loadDashboard(true);
+    }, AUTO_REFRESH_INTERVAL_MS);
 
-        const response = await client.get(ENDPOINTS.STUDENT_DASHBOARD, {
-          skipAuthRedirect: true,
-        });
+    const handleFocus = () => {
+      loadDashboard(true);
+    };
 
-        if (!active) return;
-        setDashboard(response?.data?.data || null);
-      } catch (loadError) {
-        if (!active) return;
-        setError(
-          loadError?.response?.data?.message || "Failed to load your dashboard.",
-        );
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
-      }
-    }
-
-    loadDashboard();
+    window.addEventListener("focus", handleFocus);
 
     return () => {
-      active = false;
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", handleFocus);
     };
-  }, []);
+  }, [loadDashboard]);
 
   const student = dashboard?.student || authUser || {};
   const overview = dashboard?.overview || {};
@@ -154,6 +169,13 @@ export default function StudentDashboard() {
                 >
                   Edit Profile
                 </Link>
+                <button
+                  type="button"
+                  onClick={() => loadDashboard(true)}
+                  className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/5 px-5 py-3 text-sm font-semibold text-slate-100 transition hover:border-teal-300/40 hover:text-teal-200"
+                >
+                  {refreshing ? "Refreshing..." : "Refresh Status"}
+                </button>
               </div>
             </div>
 
@@ -171,6 +193,9 @@ export default function StudentDashboard() {
                 </article>
               ))}
             </div>
+          </div>
+          <div className="mt-5 inline-flex rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs uppercase tracking-[0.18em] text-slate-400">
+            Live updates every 10 seconds | Last updated {formatDateTime(lastUpdated)}
           </div>
         </section>
 

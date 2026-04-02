@@ -1,0 +1,12 @@
+# Ignore symlinked public storage directory to avoid Docker build errors
+public/storage
+
+# Ignore local PHP / Node artifacts
+vendor
+node_modules
+npm-debug.log
+yarn-error.log
+
+# System files
+.DS_Store
+Thumbs.db
