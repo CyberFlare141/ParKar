@@ -2,23 +2,17 @@ import axios from "axios";
 import { clearAuthSession, getAuthToken } from "../auth/session";
 
 function resolveBaseUrl() {
-  const envUrl = import.meta.env.VITE_API_URL?.trim();
-  if (envUrl) {
-    return envUrl;
+  const configuredUrl = import.meta.env.VITE_API_URL?.trim();
+
+  if (configuredUrl) {
+    return configuredUrl;
   }
 
-  if (typeof window !== "undefined") {
-    const { protocol, hostname } = window.location;
-    return `${protocol}//${hostname}:18080/api`;
-  }
-
-  return "http://localhost:18080/api";
+  return "/api";
 }
 
-const resolvedBaseUrl = resolveBaseUrl();
-
 const client = axios.create({
-  baseURL: resolvedBaseUrl,
+  baseURL: resolveBaseUrl(),
 });
 
 function redirectToLogin() {
@@ -34,7 +28,7 @@ client.interceptors.request.use((config) => {
   }
 
   config.headers = config.headers || {};
-  config.headers.Authorization = `Bearer ${token}`;
+  config.headers.Authorization = Bearer ${token};
   return config;
 });
 
