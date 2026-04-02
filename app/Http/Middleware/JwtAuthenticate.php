@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Http\Services\Auth\JwtService;
 use App\Models\User;
+use App\Support\AdminPresence;
 use Closure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -43,6 +44,8 @@ class JwtAuthenticate
         if (!$user || !$user->is_active) {
             return $this->unauthorized('The authenticated user is unavailable.');
         }
+
+        AdminPresence::markOnline($user, (int) config('jwt.ttl_minutes', 60));
 
         Auth::setUser($user);
         $request->setUserResolver(static fn (): User => $user);

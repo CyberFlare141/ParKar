@@ -9,6 +9,7 @@ export const ENDPOINTS = {
   LOGOUT: "/auth/logout",
   CONTACT: "/contact",
   ITEMS: "/items",
+  ADMIN_DASHBOARD: "/admin/dashboard",
   ADMIN_PARKING_APPLICATIONS: "/admin/parking-applications",
   ADMIN_REVIEW_APPLICATION: (applicationId) =>
     `/admin/parking-applications/${applicationId}/status`,

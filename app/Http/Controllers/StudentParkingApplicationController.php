@@ -13,6 +13,7 @@ use DateTimeInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Throwable;
 
@@ -128,6 +129,9 @@ class StudentParkingApplicationController extends Controller
                     : null,
                 'recent_applications' => $applications
                     ->take(5)
+                    ->map(fn (ParkingApplication $application): array => $this->toStudentApplicationSummary($application))
+                    ->values(),
+                'application_history' => $applications
                     ->map(fn (ParkingApplication $application): array => $this->toStudentApplicationSummary($application))
                     ->values(),
                 'vehicles' => $vehicles->map(fn (Vehicle $vehicle): array => [
@@ -250,6 +254,8 @@ class StudentParkingApplicationController extends Controller
 
         $storedPaths = [];
 
+        $application = null;
+
         try {
             DB::beginTransaction();
 
@@ -303,14 +309,9 @@ class StudentParkingApplicationController extends Controller
                 ]);
             }
 
-            AiAnalysis::query()->create([
-                'application_id' => $application->id,
-                'risk_score' => $this->calculateRiskScore($aiResultsByField),
-                'renewal_recommendation' => false,
-                'raw_response' => $aiResultsByField,
-            ]);
-
             DB::commit();
+
+            $this->storeAiAnalysis($application->id, $aiResultsByField);
 
             return response()->json([
                 'message' => 'Parking application submitted successfully.',
@@ -332,6 +333,23 @@ class StudentParkingApplicationController extends Controller
             return response()->json([
                 'message' => 'Failed to submit parking application. Please try again.',
             ], 500);
+        }
+    }
+
+    private function storeAiAnalysis(int $applicationId, array $aiResultsByField): void
+    {
+        try {
+            AiAnalysis::query()->create([
+                'application_id' => $applicationId,
+                'risk_score' => $this->calculateRiskScore($aiResultsByField),
+                'renewal_recommendation' => false,
+                'raw_response' => $aiResultsByField,
+            ]);
+        } catch (Throwable $exception) {
+            Log::warning('Failed to persist AI analysis for parking application.', [
+                'application_id' => $applicationId,
+                'message' => $exception->getMessage(),
+            ]);
         }
     }
 

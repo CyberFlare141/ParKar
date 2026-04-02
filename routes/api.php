@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AdminParkingApplicationController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ContactController;
@@ -33,12 +34,7 @@ Route::middleware('jwt.auth')->group(function () {
 });
 
 Route::prefix('admin')->middleware(['jwt.auth', 'role.admin'])->group(function () {
-    Route::get('/dashboard', function (Request $request) {
-        return response()->json([
-            'message' => 'Admin access granted.',
-            'user' => $request->user()?->only(['id', 'name', 'email', 'role']),
-        ]);
-    });
+    Route::get('/dashboard', AdminDashboardController::class);
     Route::get('/parking-applications', [AdminParkingApplicationController::class, 'index']);
     Route::get('/parking-applications/{parkingApplication}/documents', [AdminParkingApplicationController::class, 'documents']);
     Route::patch('/parking-applications/{parkingApplication}/status', [AdminParkingApplicationController::class, 'review']);

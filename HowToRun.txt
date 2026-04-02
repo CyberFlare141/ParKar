@@ -9,4 +9,6 @@ docker compose exec app php artisan migrate:fresh  //THis drop previous table
 docker compose up -d   for regular run
 
 
-Now check: http://localhost:8000/api/health
+Now check: http://localhost:18080/api/health
+
+AI service should also be reachable at: http://localhost:5001/analyse

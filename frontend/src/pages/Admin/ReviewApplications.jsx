@@ -4,6 +4,7 @@ import { ENDPOINTS } from "../../api/endpoints";
 import "./ReviewApplications.css";
 
 const STATUS_OPTIONS = ["all", "pending", "approved", "rejected"];
+const AUTO_REFRESH_INTERVAL_MS = 10000;
 
 function toLocalDateTime(value) {
   if (!value) return "N/A";
@@ -46,6 +47,7 @@ export default function ReviewApplications() {
     mimeType: "",
     fileName: "",
   });
+  const [lastUpdated, setLastUpdated] = useState(null);
 
   const queryParams = useMemo(() => {
     const params = {
@@ -77,6 +79,7 @@ export default function ReviewApplications() {
         });
         const items = Array.isArray(response?.data?.data) ? response.data.data : [];
         setApplications(items);
+        setLastUpdated(new Date().toISOString());
       } catch (loadError) {
         setError(
           loadError?.response?.data?.message ||
@@ -92,6 +95,23 @@ export default function ReviewApplications() {
 
   useEffect(() => {
     loadApplications(false);
+  }, [loadApplications]);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      loadApplications(true);
+    }, AUTO_REFRESH_INTERVAL_MS);
+
+    const handleFocus = () => {
+      loadApplications(true);
+    };
+
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", handleFocus);
+    };
   }, [loadApplications]);
 
   useEffect(() => {
@@ -114,11 +134,9 @@ export default function ReviewApplications() {
     }
   };
 
-  const updateApplicationInList = (updatedApplication) => {
-    setApplications((prev) =>
-      prev.map((app) => (app.id === updatedApplication.id ? updatedApplication : app)),
-    );
-  };
+  const pendingCount = applications.filter((application) => application?.status === "pending").length;
+  const approvedCount = applications.filter((application) => application?.status === "approved").length;
+  const rejectedCount = applications.filter((application) => application?.status === "rejected").length;
 
   const handleReviewAction = async (application, nextStatus) => {
     if (!application?.id) return;
@@ -146,12 +164,9 @@ export default function ReviewApplications() {
         { skipAuthRedirect: true },
       );
 
-      const updatedApplication = response?.data?.data;
-      if (updatedApplication) {
-        updateApplicationInList(updatedApplication);
-      }
-
       setMessage(response?.data?.message || "Application updated.");
+      setExpandedId(application.id);
+      await loadApplications(true);
     } catch (reviewError) {
       setError(
         reviewError?.response?.data?.message || "Failed to update application status.",
@@ -224,7 +239,27 @@ export default function ReviewApplications() {
       <div className="admin-review-shell">
         <header className="admin-review-header">
           <h1>Application Management</h1>
-          <p>Review and manage all teacher and student parking applications.</p>
+          <p>
+            Review and manage all teacher and student parking applications.
+            New submissions refresh automatically every 10 seconds.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-3 text-xs uppercase tracking-[0.16em] text-slate-400">
+            <span className="rounded-full border border-slate-700 bg-slate-900/60 px-3 py-1.5">
+              Showing {applications.length}
+            </span>
+            <span className="rounded-full border border-amber-700/40 bg-amber-500/10 px-3 py-1.5 text-amber-100">
+              Pending {pendingCount}
+            </span>
+            <span className="rounded-full border border-emerald-700/40 bg-emerald-500/10 px-3 py-1.5 text-emerald-100">
+              Approved {approvedCount}
+            </span>
+            <span className="rounded-full border border-rose-700/40 bg-rose-500/10 px-3 py-1.5 text-rose-100">
+              Rejected {rejectedCount}
+            </span>
+            <span className="rounded-full border border-slate-700 bg-slate-900/60 px-3 py-1.5">
+              Last updated {toLocalDateTime(lastUpdated)}
+            </span>
+          </div>
         </header>
 
         <section className="admin-review-toolbar">
