@@ -1,0 +1,28 @@
+@reference "../../index.css";
+
+.student-history-page {
+  @apply min-h-screen bg-[#071118] px-4 py-6 text-slate-100 sm:px-6 lg:px-8 lg:py-10;
+}
+
+.student-history-shell {
+  @apply mx-auto flex w-full max-w-6xl flex-col gap-6;
+}
+
+.student-history-hero {
+  @apply overflow-hidden rounded-[28px] border border-white/10 px-6 py-7 shadow-[0_30px_120px_-60px_rgba(45,212,191,0.45)] sm:px-8 lg:px-10;
+  background:
+    radial-gradient(circle at top left, rgba(45,212,191,0.18), transparent 42%),
+    linear-gradient(135deg, rgba(15,23,42,0.98), rgba(2,6,23,0.95));
+}
+
+.student-history-panel {
+  @apply rounded-[24px] border border-white/10 bg-[#111418]/90 p-6 shadow-[0_20px_80px_-48px_rgba(0,0,0,0.8)];
+}
+
+.student-history-card {
+  @apply rounded-[22px] border border-white/8 bg-[#0b0d10] p-5;
+}
+
+.student-history-filterbar {
+  @apply mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/8 bg-white/5 px-4 py-3;
+}

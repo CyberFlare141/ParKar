@@ -3,7 +3,7 @@ import client from "../../api/client";
 import { ENDPOINTS } from "../../api/endpoints";
 import "./ReviewApplications.css";
 
-const STATUS_OPTIONS = ["all", "pending", "approved", "rejected"];
+const STATUS_OPTIONS = ["all", "pending", "approved", "rejected", "renewal"];
 const AUTO_REFRESH_INTERVAL_MS = 10000;
 
 function toLocalDateTime(value) {
@@ -23,6 +23,63 @@ function statusClass(status) {
 function capitalize(value) {
   const raw = String(value || "").toLowerCase();
   return raw ? `${raw[0].toUpperCase()}${raw.slice(1)}` : "Unknown";
+}
+
+function isRenewalApplication(application) {
+  return Boolean(
+    application?.is_renewal ||
+      application?.renewal_source_application_id ||
+      application?.renewal_sequence ||
+      String(application?.application_type || "").toLowerCase() === "renewal" ||
+      String(application?.request_type || "").toLowerCase() === "renewal",
+  );
+}
+
+function resolveApiDocumentUrl(url, fallbackPath = "") {
+  const rawUrl = String(url || "").trim();
+  if (!rawUrl) {
+    return fallbackPath;
+  }
+
+  if (rawUrl.startsWith("/")) {
+    return rawUrl;
+  }
+
+  try {
+    const parsed = new URL(rawUrl);
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+  } catch {
+    return fallbackPath || rawUrl;
+  }
+}
+
+function getDocumentPreviewCandidates(document) {
+  const candidates = [
+    document?.id ? ENDPOINTS.ADMIN_VIEW_DOCUMENT(document.id) : "",
+    resolveApiDocumentUrl(document?.view_url, ""),
+    resolveApiDocumentUrl(document?.download_url, ""),
+  ]
+    .map((value) => String(value || "").trim())
+    .filter(Boolean);
+
+  return [...new Set(candidates)];
+}
+
+async function getBlobErrorMessage(error) {
+  const fallbackMessage = "Failed to load document preview.";
+  const responseData = error?.response?.data;
+
+  if (responseData instanceof Blob) {
+    try {
+      const text = await responseData.text();
+      const parsed = JSON.parse(text);
+      return parsed?.message || fallbackMessage;
+    } catch {
+      return fallbackMessage;
+    }
+  }
+
+  return error?.response?.data?.message || fallbackMessage;
 }
 
 export default function ReviewApplications() {
@@ -53,7 +110,7 @@ export default function ReviewApplications() {
     const params = {
       per_page: 100,
     };
-    if (statusFilter !== "all") {
+    if (statusFilter !== "all" && statusFilter !== "renewal") {
       params.status = statusFilter;
     }
     if (searchText.trim()) {
@@ -137,6 +194,43 @@ export default function ReviewApplications() {
   const pendingCount = applications.filter((application) => application?.status === "pending").length;
   const approvedCount = applications.filter((application) => application?.status === "approved").length;
   const rejectedCount = applications.filter((application) => application?.status === "rejected").length;
+  const renewalCount = applications.filter((application) => isRenewalApplication(application)).length;
+  const visibleApplications =
+    statusFilter === "renewal"
+      ? applications.filter((application) => isRenewalApplication(application))
+      : applications;
+  const summaryChips = [
+    {
+      key: "all",
+      label: "Showing",
+      value: applications.length,
+      className: "admin-review-chip",
+    },
+    {
+      key: "pending",
+      label: "Pending",
+      value: pendingCount,
+      className: "admin-review-chip admin-review-chip-pending",
+    },
+    {
+      key: "approved",
+      label: "Approved",
+      value: approvedCount,
+      className: "admin-review-chip admin-review-chip-approved",
+    },
+    {
+      key: "rejected",
+      label: "Rejected",
+      value: rejectedCount,
+      className: "admin-review-chip admin-review-chip-rejected",
+    },
+    {
+      key: "renewal",
+      label: "Renewal",
+      value: renewalCount,
+      className: "admin-review-chip admin-review-chip-renewal",
+    },
+  ];
 
   const handleReviewAction = async (application, nextStatus) => {
     if (!application?.id) return;
@@ -193,6 +287,21 @@ export default function ReviewApplications() {
   };
 
   const handleViewDocument = async (document) => {
+    const previewCandidates = getDocumentPreviewCandidates(document);
+
+    if (!previewCandidates.length) {
+      setPreview((prev) => ({
+        ...prev,
+        open: true,
+        loading: false,
+        error: "No document preview route is available for this file.",
+        fileUrl: "",
+        mimeType: "",
+        fileName: String(document?.file_path || "").split("/").pop() || "document",
+      }));
+      return;
+    }
+
     try {
       setError("");
       setMessage("");
@@ -210,12 +319,29 @@ export default function ReviewApplications() {
         };
       });
 
-      const response = await client.get(document.view_url, {
-        responseType: "blob",
-        skipAuthRedirect: true,
-      });
+      let blob = null;
+      let lastPreviewError = null;
 
-      const blob = response?.data;
+      for (const previewUrl of previewCandidates) {
+        try {
+          const response = await client.get(previewUrl, {
+            responseType: "blob",
+            skipAuthRedirect: true,
+          });
+
+          blob = response?.data || null;
+          if (blob) {
+            break;
+          }
+        } catch (requestError) {
+          lastPreviewError = requestError;
+        }
+      }
+
+      if (!blob) {
+        throw lastPreviewError || new Error("Failed to load document preview.");
+      }
+
       const fileUrl = URL.createObjectURL(blob);
       setPreview((prev) => ({
         ...prev,
@@ -224,12 +350,11 @@ export default function ReviewApplications() {
         mimeType: blob?.type || "",
       }));
     } catch (previewError) {
+      const errorMessage = await getBlobErrorMessage(previewError);
       setPreview((prev) => ({
         ...prev,
         loading: false,
-        error:
-          previewError?.response?.data?.message ||
-          "Failed to load document preview.",
+        error: errorMessage,
       }));
     }
   };
@@ -244,18 +369,18 @@ export default function ReviewApplications() {
             New submissions refresh automatically every 10 seconds.
           </p>
           <div className="mt-4 flex flex-wrap gap-3 text-xs uppercase tracking-[0.16em] text-slate-400">
-            <span className="rounded-full border border-slate-700 bg-slate-900/60 px-3 py-1.5">
-              Showing {applications.length}
-            </span>
-            <span className="rounded-full border border-amber-700/40 bg-amber-500/10 px-3 py-1.5 text-amber-100">
-              Pending {pendingCount}
-            </span>
-            <span className="rounded-full border border-emerald-700/40 bg-emerald-500/10 px-3 py-1.5 text-emerald-100">
-              Approved {approvedCount}
-            </span>
-            <span className="rounded-full border border-rose-700/40 bg-rose-500/10 px-3 py-1.5 text-rose-100">
-              Rejected {rejectedCount}
-            </span>
+            {summaryChips.map((chip) => (
+              <button
+                key={chip.key}
+                type="button"
+                onClick={() => setStatusFilter(chip.key)}
+                className={`${chip.className} ${
+                  statusFilter === chip.key ? "admin-review-chip-active" : ""
+                }`}
+              >
+                {chip.label} {chip.value}
+              </button>
+            ))}
             <span className="rounded-full border border-slate-700 bg-slate-900/60 px-3 py-1.5">
               Last updated {toLocalDateTime(lastUpdated)}
             </span>
@@ -284,6 +409,20 @@ export default function ReviewApplications() {
           </button>
         </section>
 
+        {statusFilter !== "all" ? (
+          <div className="admin-review-filterbar">
+            <p>
+              Showing{" "}
+              <strong>
+                {statusFilter === "renewal" ? "renewal applications" : `${statusFilter} applications`}
+              </strong>
+            </p>
+            <button type="button" onClick={() => setStatusFilter("all")}>
+              Clear filter
+            </button>
+          </div>
+        ) : null}
+
         {message ? <p className="admin-review-message success">{message}</p> : null}
         {error ? <p className="admin-review-message error">{error}</p> : null}
 
@@ -309,16 +448,18 @@ export default function ReviewApplications() {
                 </tr>
               ) : null}
 
-              {!loading && applications.length === 0 ? (
+              {!loading && visibleApplications.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="table-empty">
-                    No applications found.
+                    {statusFilter === "renewal"
+                      ? "No renewal applications found."
+                      : "No applications found."}
                   </td>
                 </tr>
               ) : null}
 
               {!loading
-                ? applications.map((application) => (
+                ? visibleApplications.map((application) => (
                     <tr key={application.id}>
                       <td>{application?.applicant?.name || "N/A"}</td>
                       <td>{capitalize(application?.applicant?.role)}</td>
@@ -332,9 +473,14 @@ export default function ReviewApplications() {
                       </td>
                       <td>{toLocalDateTime(application?.created_at)}</td>
                       <td>
-                        <span className={statusClass(application?.status)}>
-                          {capitalize(application?.status)}
-                        </span>
+                        <div className="flex flex-wrap gap-2">
+                          <span className={statusClass(application?.status)}>
+                            {capitalize(application?.status)}
+                          </span>
+                          {isRenewalApplication(application) ? (
+                            <span className="app-status app-status-renewal">Renewal</span>
+                          ) : null}
+                        </div>
                       </td>
                       <td>
                         <button
@@ -358,7 +504,17 @@ export default function ReviewApplications() {
           const isPending = application.status === "pending";
           return (
             <section className="application-detail" key={`detail-${application.id}`}>
-              <h2>Application #{application.id}</h2>
+              <h2>
+                {isRenewalApplication(application)
+                  ? `Renewal Request #${application.id}`
+                  : `Application #${application.id}`}
+              </h2>
+              {isRenewalApplication(application) && application?.renewal_source_application_id ? (
+                <p>
+                  <strong>Renewal For:</strong> Application #
+                  {application.renewal_source_application_id}
+                </p>
+              ) : null}
               <p>
                 <strong>Applicant:</strong> {application?.applicant?.name || "N/A"} (
                 {capitalize(application?.applicant?.role)})

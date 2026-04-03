@@ -1,7 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import client from "../../api/client";
 import { ENDPOINTS } from "../../api/endpoints";
+import {
+  getCombinedStudentApplications,
+  getRenewalAlertClass,
+  getRenewalBadgeClass,
+  getRenewalMeta,
+  getUserRenewalHistoryEntries,
+} from "./renewalUtils";
+import "./ApplicationHistory.css";
 
 const AUTO_REFRESH_INTERVAL_MS = 10000;
 
@@ -39,15 +47,19 @@ function statusTone(status) {
   const normalized = String(status || "").toLowerCase();
   if (normalized === "approved") return "bg-emerald-400/15 text-emerald-200 border-emerald-300/20";
   if (normalized === "rejected") return "bg-rose-400/15 text-rose-200 border-rose-300/20";
+  if (normalized === "pending") return "bg-amber-400/15 text-amber-100 border-amber-300/20";
   return "bg-amber-400/15 text-amber-100 border-amber-300/20";
 }
 
 export default function ApplicationHistory() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [history, setHistory] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [activeFilter, setActiveFilter] = useState("all");
 
   const loadHistory = useCallback(async (isRefresh = false) => {
     try {
@@ -92,12 +104,83 @@ export default function ApplicationHistory() {
   }, [loadHistory]);
 
   const applications = useMemo(() => history?.application_history || [], [history]);
-  const overview = history?.overview || {};
+  const student = history?.student || {};
+  const renewalApplications = useMemo(
+    () => getUserRenewalHistoryEntries(student?.id, applications),
+    [applications, student?.id],
+  );
+  const combinedApplications = useMemo(
+    () => getCombinedStudentApplications(student?.id, applications),
+    [applications, renewalApplications],
+  );
+  const overview = useMemo(() => {
+    const countByStatus = (status) =>
+      combinedApplications.filter(
+        (application) => String(application?.status || "").toLowerCase() === status,
+      ).length;
+
+    return {
+      total_applications: combinedApplications.length,
+      pending_applications: countByStatus("pending"),
+      approved_applications: countByStatus("approved") + countByStatus("active"),
+      rejected_applications: countByStatus("rejected"),
+    };
+  }, [combinedApplications]);
+  const filteredApplications = useMemo(() => {
+    if (activeFilter === "all") {
+      return combinedApplications;
+    }
+
+    return combinedApplications.filter((application) => {
+      const status = String(application?.status || "").toLowerCase();
+
+      if (activeFilter === "approved") {
+        return status === "approved" || status === "active";
+      }
+
+      return status === activeFilter;
+    });
+  }, [activeFilter, combinedApplications]);
+
+  const summaryFilters = [
+    {
+      key: "all",
+      label: "Total",
+      value: overview.total_applications ?? 0,
+      className: "border-white/10 bg-white/5 text-slate-400",
+    },
+    {
+      key: "pending",
+      label: "Pending",
+      value: overview.pending_applications ?? 0,
+      className: "border-amber-300/20 bg-amber-400/10 text-amber-100",
+    },
+    {
+      key: "approved",
+      label: "Approved",
+      value: overview.approved_applications ?? 0,
+      className: "border-emerald-300/20 bg-emerald-400/10 text-emerald-200",
+    },
+    {
+      key: "rejected",
+      label: "Rejected",
+      value: overview.rejected_applications ?? 0,
+      className: "border-rose-300/20 bg-rose-400/10 text-rose-200",
+    },
+  ];
+
+  useEffect(() => {
+    if (!location.state?.renewalFeedback) {
+      return;
+    }
+
+    navigate(location.pathname, { replace: true, state: {} });
+  }, [location.pathname, location.state, navigate]);
 
   return (
-    <div className="min-h-screen bg-[#071118] px-4 py-6 text-slate-100 sm:px-6 lg:px-8 lg:py-10">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-        <section className="overflow-hidden rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(45,212,191,0.18),_transparent_42%),linear-gradient(135deg,_rgba(15,23,42,0.98),_rgba(2,6,23,0.95))] px-6 py-7 shadow-[0_30px_120px_-60px_rgba(45,212,191,0.45)] sm:px-8 lg:px-10">
+    <div className="student-history-page">
+      <div className="student-history-shell">
+        <section className="student-history-hero">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="space-y-3">
               <span className="inline-flex items-center rounded-full border border-teal-400/25 bg-teal-400/10 px-4 py-1.5 text-[0.72rem] font-semibold uppercase tracking-[0.24em] text-teal-300">
@@ -123,6 +206,12 @@ export default function ApplicationHistory() {
                 {refreshing ? "Refreshing..." : "Refresh"}
               </button>
               <Link
+                to="/student/renew"
+                className="inline-flex items-center justify-center rounded-full border border-amber-300/30 bg-amber-400/10 px-5 py-3 text-sm font-semibold text-amber-100 transition hover:border-amber-200/60 hover:bg-amber-300/15"
+              >
+                Renew Application
+              </Link>
+              <Link
                 to="/student/dashboard"
                 className="inline-flex items-center justify-center rounded-full bg-teal-400 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-white"
               >
@@ -132,18 +221,20 @@ export default function ApplicationHistory() {
           </div>
 
           <div className="mt-6 flex flex-wrap gap-3 text-xs uppercase tracking-[0.18em] text-slate-400">
-            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
-              Total {overview.total_applications ?? 0}
-            </span>
-            <span className="rounded-full border border-amber-300/20 bg-amber-400/10 px-3 py-1.5 text-amber-100">
-              Pending {overview.pending_applications ?? 0}
-            </span>
-            <span className="rounded-full border border-emerald-300/20 bg-emerald-400/10 px-3 py-1.5 text-emerald-200">
-              Approved {overview.approved_applications ?? 0}
-            </span>
-            <span className="rounded-full border border-rose-300/20 bg-rose-400/10 px-3 py-1.5 text-rose-200">
-              Rejected {overview.rejected_applications ?? 0}
-            </span>
+            {summaryFilters.map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                onClick={() => setActiveFilter(item.key)}
+                className={`rounded-full border px-3 py-1.5 transition ${
+                  activeFilter === item.key
+                    ? "ring-2 ring-white/30"
+                    : ""
+                } ${item.className}`}
+              >
+                {item.label} {item.value}
+              </button>
+            ))}
             <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
               Last updated {formatDateTime(lastUpdated)}
             </span>
@@ -156,110 +247,181 @@ export default function ApplicationHistory() {
           </div>
         ) : null}
 
-        <section className="rounded-[24px] border border-white/10 bg-[#111418]/90 p-6 shadow-[0_20px_80px_-48px_rgba(0,0,0,0.8)]">
+        {location.state?.renewalFeedback ? (
+          <div className="rounded-2xl border border-emerald-400/30 bg-emerald-400/10 px-5 py-4 text-sm text-emerald-100">
+            {location.state.renewalFeedback}
+          </div>
+        ) : null}
+
+        <section className="student-history-panel">
+          {!loading ? (
+            <div className="student-history-filterbar">
+              <p className="text-sm text-slate-300">
+                Showing{" "}
+                <span className="font-semibold text-white">
+                  {activeFilter === "all"
+                    ? "all applications"
+                    : `${activeFilter} applications`}
+                </span>
+              </p>
+              {activeFilter !== "all" ? (
+                <button
+                  type="button"
+                  onClick={() => setActiveFilter("all")}
+                  className="text-sm font-semibold text-teal-300 transition hover:text-white"
+                >
+                  Clear filter
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+
           {loading ? (
             <div className="space-y-4">
               <div className="h-24 animate-pulse rounded-2xl bg-white/5" />
               <div className="h-24 animate-pulse rounded-2xl bg-white/5" />
               <div className="h-24 animate-pulse rounded-2xl bg-white/5" />
             </div>
-          ) : applications.length ? (
+          ) : filteredApplications.length ? (
             <div className="space-y-4">
-              {applications.map((application) => (
-                <article
-                  key={application.id}
-                  className="rounded-[22px] border border-white/8 bg-[#0b0d10] p-5"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <p className="text-lg font-semibold text-white">
-                        Application #{application.id}
-                      </p>
-                      <p className="mt-1 text-sm text-slate-400">
-                        {application?.semester?.name || "Semester unavailable"}
-                      </p>
-                    </div>
-                    <span
-                      className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${statusTone(application.status)}`}
-                    >
-                      {application.status || "unknown"}
-                    </span>
-                  </div>
+              {filteredApplications.map((application) => (
+                (() => {
+                  const renewalMeta = getRenewalMeta(application, student?.id);
 
-                  <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                    <div className="rounded-2xl border border-white/8 bg-white/5 p-4">
-                      <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
-                        Submitted
-                      </p>
-                      <p className="mt-2 text-sm text-slate-200">
-                        {formatDateTime(application.created_at)}
-                      </p>
-                    </div>
-                    <div className="rounded-2xl border border-white/8 bg-white/5 p-4">
-                      <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
-                        Reviewed
-                      </p>
-                      <p className="mt-2 text-sm text-slate-200">
-                        {formatDateTime(application.reviewed_at)}
-                      </p>
-                    </div>
-                    <div className="rounded-2xl border border-white/8 bg-white/5 p-4">
-                      <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
-                        Vehicle
-                      </p>
-                      <p className="mt-2 text-sm text-slate-200">
-                        {application?.vehicle
-                          ? `${application.vehicle.brand} ${application.vehicle.model}`
-                          : "Vehicle unavailable"}
-                      </p>
-                      <p className="mt-1 text-xs text-slate-400">
-                        Plate: {application?.vehicle?.plate_number || "N/A"}
-                      </p>
-                    </div>
-                    <div className="rounded-2xl border border-white/8 bg-white/5 p-4">
-                      <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
-                        Ticket
-                      </p>
-                      <p className="mt-2 text-sm text-slate-200">
-                        {application?.ticket?.ticket_id || "Not issued"}
-                      </p>
-                      <p className="mt-1 text-xs text-slate-400">
-                        Slot: {application?.ticket?.parking_slot || "Not assigned"}
-                      </p>
-                    </div>
-                  </div>
+                  return (
+                    <article key={application.id} className="student-history-card">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <p className="text-lg font-semibold text-white">
+                            {application?.is_renewal
+                              ? `Renewal Request #${application.renewal_sequence}`
+                              : `Application #${application.id}`}
+                          </p>
+                          <p className="mt-1 text-sm text-slate-400">
+                            {application?.is_renewal
+                              ? `For Application #${application.renewal_source_application_id}`
+                              : application?.semester?.name || "Semester unavailable"}
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <span
+                            className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${statusTone(application.status)}`}
+                          >
+                            {application.status || "unknown"}
+                          </span>
+                          {renewalMeta.canRenew ? (
+                            <span
+                              className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${getRenewalBadgeClass(
+                                renewalMeta.renewalStatus,
+                              )}`}
+                            >
+                              {renewalMeta.renewalStatus}
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
 
-                  <div className="mt-4 rounded-2xl border border-white/8 bg-white/5 p-4">
-                    <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
-                      Admin Comment
-                    </p>
-                    <p className="mt-2 text-sm leading-7 text-slate-300">
-                      {application?.admin_comment || "No admin comment added yet."}
-                    </p>
-                  </div>
-
-                  {application?.documents?.length ? (
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {application.documents.map((document) => (
-                        <span
-                          key={document.id}
-                          className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs uppercase tracking-[0.16em] text-slate-300"
+                      {renewalMeta.canRenew ? (
+                        <div
+                          className={`mt-4 rounded-2xl border px-4 py-4 text-sm ${getRenewalAlertClass(
+                            renewalMeta.alertTone,
+                          )}`}
                         >
-                          {formatLabel(document.document_type)}
-                        </span>
-                      ))}
-                    </div>
-                  ) : null}
+                          <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                              <p className="font-semibold uppercase tracking-[0.16em]">
+                                Renewal Status
+                              </p>
+                              <p className="mt-2 leading-6">{renewalMeta.alertMessage}</p>
+                            </div>
+                            <Link
+                              to={`/student/renew/${application.id}`}
+                              className="rounded-full border border-current/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition hover:bg-white/10"
+                            >
+                              Renew Application
+                            </Link>
+                          </div>
+                        </div>
+                      ) : null}
 
-                  <p className="mt-4 text-xs uppercase tracking-[0.18em] text-slate-500">
-                    Created {formatDate(application.created_at)}
-                  </p>
-                </article>
+                      <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                        <div className="rounded-2xl border border-white/8 bg-white/5 p-4">
+                          <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
+                            Submitted
+                          </p>
+                          <p className="mt-2 text-sm text-slate-200">
+                            {formatDateTime(application.created_at)}
+                          </p>
+                        </div>
+                        <div className="rounded-2xl border border-white/8 bg-white/5 p-4">
+                          <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
+                            Reviewed
+                          </p>
+                          <p className="mt-2 text-sm text-slate-200">
+                            {formatDateTime(application.reviewed_at)}
+                          </p>
+                        </div>
+                        <div className="rounded-2xl border border-white/8 bg-white/5 p-4">
+                          <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
+                            Expiry Date
+                          </p>
+                          <p className="mt-2 text-sm text-slate-200">
+                            {renewalMeta.canRenew
+                              ? formatDate(renewalMeta.expiresAt)
+                              : "Unavailable"}
+                          </p>
+                          <p className="mt-1 text-xs text-slate-400">
+                            Last renewed: {formatDateTime(renewalMeta.lastRenewedAt)}
+                          </p>
+                        </div>
+                        <div className="rounded-2xl border border-white/8 bg-white/5 p-4">
+                          <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
+                            Vehicle
+                          </p>
+                          <p className="mt-2 text-sm text-slate-200">
+                            {application?.vehicle
+                              ? `${application.vehicle.brand} ${application.vehicle.model}`
+                              : "Vehicle unavailable"}
+                          </p>
+                          <p className="mt-1 text-xs text-slate-400">
+                            Plate: {application?.vehicle?.plate_number || "N/A"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 rounded-2xl border border-white/8 bg-white/5 p-4">
+                        <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
+                          Admin Comment
+                        </p>
+                        <p className="mt-2 text-sm leading-7 text-slate-300">
+                          {application?.admin_comment || "No admin comment added yet."}
+                        </p>
+                      </div>
+
+                      {application?.documents?.length ? (
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          {application.documents.map((document) => (
+                            <span
+                              key={document.id}
+                              className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs uppercase tracking-[0.16em] text-slate-300"
+                            >
+                              {formatLabel(document.document_type)}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
+
+                      <p className="mt-4 text-xs uppercase tracking-[0.18em] text-slate-500">
+                        Created {formatDate(application.created_at)}
+                      </p>
+                    </article>
+                  );
+                })()
               ))}
             </div>
           ) : (
             <div className="rounded-[22px] border border-dashed border-white/15 bg-white/[0.03] p-5 text-sm text-slate-400">
-              You have not submitted any parking application yet.
+              No applications match the selected filter.
             </div>
           )}
         </section>

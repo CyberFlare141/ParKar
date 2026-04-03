@@ -20,6 +20,8 @@ import ApplyParking from "./pages/Student/ApplyParking";
 import ApplicationHistory from "./pages/Student/ApplicationHistory";
 import MyDocuments from "./pages/Student/MyDocuments";
 import MyVehicles from "./pages/Student/MyVehicles";
+import RenewApplication from "./pages/Student/RenewApplication";
+import RenewalOverview from "./pages/Student/RenewalOverview";
 
 /* ===== TEACHER ===== */
 import TeacherDashboard from "./pages/Teacher/TeacherDashboard";
@@ -97,6 +99,22 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={["student"]}>
               <ApplicationHistory />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/student/renew"
+          element={
+            <ProtectedRoute allowedRoles={["student"]}>
+              <RenewalOverview />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/student/renew/:applicationId"
+          element={
+            <ProtectedRoute allowedRoles={["student"]}>
+              <RenewApplication />
             </ProtectedRoute>
           }
         />

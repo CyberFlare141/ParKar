@@ -6,6 +6,7 @@ use App\Models\AuditLog;
 use App\Models\Document;
 use App\Models\ParkingApplication;
 use App\Models\ParkingTicket;
+use DateTimeInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -217,8 +218,8 @@ class AdminParkingApplicationController extends Controller
         return [
             'id' => $application->id,
             'status' => $application->status,
-            'created_at' => $application->created_at?->toIso8601String(),
-            'reviewed_at' => $application->reviewed_at?->toIso8601String(),
+            'created_at' => $this->toIsoString($application->created_at),
+            'reviewed_at' => $this->toIsoString($application->reviewed_at),
             'admin_comment' => $application->admin_comment,
             'applicant' => [
                 'name' => $application->applicant_name,
@@ -247,7 +248,7 @@ class AdminParkingApplicationController extends Controller
             )->values(),
             'ticket' => $application->parkingTicket ? [
                 'ticket_id' => $application->parkingTicket->ticket_id,
-                'issue_date' => $application->parkingTicket->issue_date?->toIso8601String(),
+                'issue_date' => $this->toIsoString($application->parkingTicket->issue_date),
                 'parking_slot' => $application->parkingTicket->parking_slot,
             ] : null,
         ];
@@ -260,7 +261,7 @@ class AdminParkingApplicationController extends Controller
             'document_type' => $document->document_type,
             'file_path' => $document->file_path,
             'is_verified' => (bool) $document->is_verified,
-            'created_at' => $document->created_at?->toIso8601String(),
+            'created_at' => $this->toIsoString($document->created_at),
             'view_url' => url("/api/admin/documents/{$document->id}/view"),
             'download_url' => url("/api/admin/documents/{$document->id}/download"),
         ];
@@ -276,5 +277,18 @@ class AdminParkingApplicationController extends Controller
         }
 
         return 'PKT-' . now()->format('YmdHis') . '-' . strtoupper(bin2hex(random_bytes(2)));
+    }
+
+    private function toIsoString(mixed $value): ?string
+    {
+        if ($value instanceof DateTimeInterface) {
+            return $value->format(DateTimeInterface::ATOM);
+        }
+
+        if (is_string($value) && trim($value) !== '') {
+            return $value;
+        }
+
+        return null;
     }
 }
