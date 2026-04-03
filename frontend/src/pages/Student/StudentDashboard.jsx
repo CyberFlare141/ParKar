@@ -3,6 +3,13 @@ import { Link } from "react-router-dom";
 import client from "../../api/client";
 import { ENDPOINTS } from "../../api/endpoints";
 import { getAuthUser } from "../../auth/session";
+import {
+  getCombinedStudentApplications,
+  getRenewalAlertClass,
+  getRenewalBadgeClass,
+  getRenewalMeta,
+  getUserRenewalHistoryEntries,
+} from "./renewalUtils";
 import "./StudentDashboard.css";
 
 function formatDate(value) {
@@ -39,6 +46,7 @@ function statusTone(status) {
   const normalized = String(status || "").toLowerCase();
   if (normalized === "approved") return "pk-student-badge-success";
   if (normalized === "rejected") return "pk-student-badge-danger";
+  if (normalized === "pending") return "pk-student-badge-warning";
   return "pk-student-badge-warning";
 }
 
@@ -98,17 +106,29 @@ export default function StudentDashboard() {
 
   const student = dashboard?.student || authUser || {};
   const overview = dashboard?.overview || {};
-  const latestApplication = dashboard?.latest_application;
+  const baseApplications = dashboard?.application_history || [];
   const recentApplications = dashboard?.recent_applications || [];
-  const vehicles = dashboard?.vehicles || [];
   const documents = dashboard?.documents || [];
   const activeSemester = dashboard?.active_semester;
+  const combinedApplications = getCombinedStudentApplications(student?.id, baseApplications);
+  const latestApplication = combinedApplications[0] || dashboard?.latest_application;
+  const renewalHistoryEntries = getUserRenewalHistoryEntries(student?.id, baseApplications);
+  const combinedRecentApplications = combinedApplications.slice(0, 5);
+  const latestRenewalMeta = getRenewalMeta(latestApplication, authUser?.id);
+  const renewalApplications = recentApplications.filter((application) =>
+    getRenewalMeta(application, authUser?.id).canRenew,
+  );
 
   const quickStats = [
     {
       label: "Applications",
-      value: overview.total_applications ?? 0,
-      hint: `${overview.pending_applications ?? 0} pending`,
+      value: (overview.total_applications ?? 0) + renewalHistoryEntries.length,
+      hint: `${
+        (overview.pending_applications ?? 0) +
+        renewalHistoryEntries.filter(
+          (application) => String(application?.status || "").toLowerCase() === "pending",
+        ).length
+      } pending`,
     },
     {
       label: "Approved",
@@ -163,6 +183,14 @@ export default function StudentDashboard() {
                 >
                   View History
                 </Link>
+                {latestRenewalMeta.canRenew ? (
+                  <Link
+                    to={`/student/renew/${latestApplication?.id}`}
+                    className="inline-flex items-center justify-center rounded-full border border-amber-300/30 bg-amber-400/10 px-5 py-3 text-sm font-semibold text-amber-100 transition hover:border-amber-200/60 hover:bg-amber-300/15"
+                  >
+                    Renew Application
+                  </Link>
+                ) : null}
                 <Link
                   to="/profile"
                   className="inline-flex items-center justify-center rounded-full border border-white/15 bg-transparent px-5 py-3 text-sm font-semibold text-slate-300 transition hover:border-white/30 hover:text-white"
@@ -205,6 +233,29 @@ export default function StudentDashboard() {
           </div>
         ) : null}
 
+        {!loading && latestApplication && latestRenewalMeta.canRenew ? (
+          <div
+            className={`rounded-2xl border px-5 py-4 text-sm ${getRenewalAlertClass(
+              latestRenewalMeta.alertTone,
+            )}`}
+          >
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="font-semibold uppercase tracking-[0.16em]">
+                  Renewal Alert
+                </p>
+                <p className="mt-2 leading-6">{latestRenewalMeta.alertMessage}</p>
+              </div>
+              <Link
+                to={`/student/renew/${latestApplication.id}`}
+                className="rounded-full border border-current/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition hover:bg-white/10"
+              >
+                Open Renewal
+              </Link>
+            </div>
+          </div>
+        ) : null}
+
         {loading ? (
           <section className="grid gap-5 lg:grid-cols-[1.35fr_0.95fr]">
             <div className="rounded-[24px] border border-white/10 bg-white/5 p-6">
@@ -234,9 +285,15 @@ export default function StudentDashboard() {
                     </h2>
                   </div>
                   <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${statusTone(latestApplication?.status)}`}
+                    className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${
+                      latestRenewalMeta.canRenew
+                        ? getRenewalBadgeClass(latestRenewalMeta.lifecycleStatus)
+                        : statusTone(latestApplication?.status)
+                    }`}
                   >
-                    {latestApplication?.status || "Not Started"}
+                    {latestRenewalMeta.canRenew
+                      ? latestRenewalMeta.lifecycleStatus
+                      : latestApplication?.status || "Not Started"}
                   </span>
                 </div>
 
@@ -252,6 +309,20 @@ export default function StudentDashboard() {
                       {activeSemester
                         ? `${formatDate(activeSemester.start_date)} - ${formatDate(activeSemester.end_date)}`
                         : "Semester schedule is not available yet."}
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-white/8 bg-white/5 p-4">
+                    <p className="text-xs uppercase tracking-[0.18em] text-slate-400">
+                      Expiry Date
+                    </p>
+                    <p className="mt-2 text-lg font-semibold text-white">
+                      {latestRenewalMeta.canRenew
+                        ? formatDate(latestRenewalMeta.expiresAt)
+                        : "Unavailable"}
+                    </p>
+                    <p className="mt-2 text-sm text-slate-400">
+                      Renewal status: {latestRenewalMeta.renewalStatus}
                     </p>
                   </div>
 
@@ -275,6 +346,18 @@ export default function StudentDashboard() {
                     </p>
                     <p className="mt-2 text-base font-medium text-slate-100">
                       {latestApplication ? formatDateTime(latestApplication.created_at) : "No submission yet"}
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-white/8 bg-[#0b0d10] p-4">
+                    <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
+                      Renewal Count
+                    </p>
+                    <p className="mt-2 text-base font-medium text-slate-100">
+                      {latestRenewalMeta.renewalCount}
+                    </p>
+                    <p className="mt-1 text-sm text-slate-400">
+                      Last renewed: {formatDateTime(latestRenewalMeta.lastRenewedAt)}
                     </p>
                   </div>
 
@@ -366,50 +449,84 @@ export default function StudentDashboard() {
                 </div>
 
                 <div className="mt-6 space-y-4">
-                  {recentApplications.length ? (
-                    recentApplications.map((application) => (
-                      <div
-                        key={application.id}
-                        className="rounded-[22px] border border-white/8 bg-[#0b0d10] p-4"
-                      >
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                          <div>
-                            <p className="text-lg font-semibold text-white">
-                              Application #{application.id}
-                            </p>
-                            <p className="mt-1 text-sm text-slate-400">
-                              {application?.semester?.name || "Semester unavailable"}
-                            </p>
-                          </div>
-                          <span
-                            className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${statusTone(application.status)}`}
-                          >
-                            {application.status}
-                          </span>
-                        </div>
+                  {combinedRecentApplications.length ? (
+                    combinedRecentApplications.map((application) => {
+                      const renewalMeta = getRenewalMeta(application, authUser?.id);
 
-                        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                          <div>
-                            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
-                              Submitted
-                            </p>
-                            <p className="mt-1 text-sm text-slate-300">
-                              {formatDateTime(application.created_at)}
-                            </p>
+                      return (
+                        <div
+                          key={application.id}
+                          className="rounded-[22px] border border-white/8 bg-[#0b0d10] p-4"
+                        >
+                          <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                              <p className="text-lg font-semibold text-white">
+                                {application?.is_renewal
+                                  ? `Renewal Request #${application.renewal_sequence}`
+                                  : `Application #${application.id}`}
+                              </p>
+                              <p className="mt-1 text-sm text-slate-400">
+                                {application?.is_renewal
+                                  ? `For Application #${application.renewal_source_application_id}`
+                                  : application?.semester?.name || "Semester unavailable"}
+                              </p>
+                            </div>
+                            <span
+                              className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${statusTone(application.status)}`}
+                            >
+                              {application.status}
+                            </span>
                           </div>
-                          <div>
-                            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
-                              Vehicle
-                            </p>
-                            <p className="mt-1 text-sm text-slate-300">
-                              {application?.vehicle
-                                ? `${application.vehicle.brand} ${application.vehicle.model} (${application.vehicle.plate_number})`
-                                : "Vehicle not found"}
-                            </p>
+
+                          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                            <div>
+                              <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
+                                Submitted
+                              </p>
+                              <p className="mt-1 text-sm text-slate-300">
+                                {formatDateTime(application.created_at)}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
+                                Vehicle
+                              </p>
+                              <p className="mt-1 text-sm text-slate-300">
+                                {application?.vehicle
+                                  ? `${application.vehicle.brand} ${application.vehicle.model} (${application.vehicle.plate_number})`
+                                  : "Vehicle not found"}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
+                                Expiry
+                              </p>
+                              <p className="mt-1 text-sm text-slate-300">
+                                {formatDate(renewalMeta.expiresAt)}
+                              </p>
+                            </div>
                           </div>
+
+                          {renewalMeta.canRenew ? (
+                            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                              <span
+                                className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] ${getRenewalBadgeClass(
+                                  renewalMeta.renewalStatus,
+                                )}`}
+                              >
+                                {renewalMeta.renewalStatus}
+                              </span>
+                              <Link
+                                to={`/student/renew/${application.id}`}
+                                className="text-sm font-semibold text-amber-200 transition hover:text-white"
+                              >
+                                Renew application
+                              </Link>
+                            </div>
+                          ) : null}
                         </div>
-                      </div>
-                    ))
+                      );
+                    })
                   ) : (
                     <div className="rounded-[22px] border border-dashed border-white/15 bg-white/[0.03] p-5 text-sm text-slate-400">
                       You have not submitted any parking application yet.
@@ -423,35 +540,58 @@ export default function StudentDashboard() {
                   <div>
                     <div>
                       <p className="text-xs uppercase tracking-[0.2em] text-teal-300">
-                        Vehicles
+                        Renewal Queue
                       </p>
                       <h2 className="mt-2 text-2xl font-semibold text-white">
-                        Registered Vehicles
+                        Eligible Applications
                       </h2>
                     </div>
                   </div>
 
                   <div className="pk-student-vehicle-list mt-6 space-y-3">
-                    {vehicles.length ? (
-                      vehicles.map((vehicle) => (
+                    {renewalApplications.length ? (
+                      renewalApplications.map((application) => {
+                        const renewalMeta = getRenewalMeta(application, authUser?.id);
+
+                        return (
                         <div
-                          key={vehicle.id}
+                          key={application.id}
                           className="rounded-2xl border border-white/8 bg-white/5 px-4 py-4"
                         >
-                          <p className="font-semibold text-white">
-                            {vehicle.brand} {vehicle.model}
-                          </p>
-                          <p className="mt-1 text-sm text-slate-400">
-                            {formatLabel(vehicle.vehicle_type)} | {vehicle.color}
-                          </p>
-                          <p className="mt-2 text-sm text-teal-200">
-                            Plate: {vehicle.plate_number}
-                          </p>
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <p className="font-semibold text-white">
+                                  Application #{application.id}
+                                </p>
+                                <p className="mt-1 text-sm text-slate-400">
+                                  Expires {formatDate(renewalMeta.expiresAt)}
+                                </p>
+                              </div>
+                              <span
+                                className={`rounded-full px-3 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.16em] ${getRenewalBadgeClass(
+                                  renewalMeta.renewalStatus,
+                                )}`}
+                              >
+                                {renewalMeta.renewalStatus}
+                              </span>
+                            </div>
+                            <p className="mt-3 text-sm text-slate-400">
+                              {application?.vehicle
+                                ? `${application.vehicle.brand} ${application.vehicle.model} (${application.vehicle.plate_number})`
+                                : "Vehicle details unavailable"}
+                            </p>
+                            <Link
+                              to={`/student/renew/${application.id}`}
+                              className="mt-3 inline-flex text-sm font-semibold text-teal-200 transition hover:text-white"
+                            >
+                              Start renewal
+                            </Link>
                         </div>
-                      ))
+                        );
+                      })
                     ) : (
                       <p className="rounded-2xl border border-dashed border-white/15 bg-white/[0.03] px-4 py-4 text-sm text-slate-400">
-                        No saved vehicles yet.
+                        No approved applications are ready for renewal right now.
                       </p>
                     )}
                   </div>

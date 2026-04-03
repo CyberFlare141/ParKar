@@ -996,7 +996,7 @@ function getUserDisplayName() {
 function getVehiclePathByRole(role) {
   if (role === "teacher") return "/teacher/vehicles";
   if (role === "student") return "/student/vehicles";
-  return getDashboardPathByRole(role);
+  return null;
 }
 
 function getApplicationPathByRole(role) {
@@ -1004,6 +1004,67 @@ function getApplicationPathByRole(role) {
   if (role === "student") return "/student/apply";
   if (role === "teacher") return "/teacher/dashboard";
   return getDashboardPathByRole(role);
+}
+
+function getRenewApplicationPathByRole(role) {
+  if (role === "student") return "/student/renew";
+  return null;
+}
+
+function getPrimaryActionByRole(role) {
+  if (role === "admin") {
+    return {
+      to: "/admin/review",
+      label: "Open Review Queue",
+    };
+  }
+
+  if (role === "teacher") {
+    return {
+      to: "/teacher/dashboard",
+      label: "Open Dashboard",
+    };
+  }
+
+  if (role === "student") {
+    return {
+      to: "/student/apply",
+      label: "Apply for a Permit",
+    };
+  }
+
+  return {
+    to: "/register",
+    label: "Apply for a Permit",
+  };
+}
+
+function getSecondaryActionByRole(role) {
+  if (role === "admin") {
+    return {
+      to: "/admin/dashboard",
+      label: "Admin Dashboard",
+    };
+  }
+
+  if (role === "teacher") {
+    return {
+      to: "/teacher/vehicles",
+      label: "Vehicles",
+    };
+  }
+
+  if (role === "student") {
+    return {
+      to: "/student/vehicles",
+      label: "Vehicle",
+    };
+  }
+
+  return {
+    to: "/login",
+    label: "Sign In",
+  };
 }
 
 function getRoleMenuLabel(role) {
@@ -1028,6 +1089,9 @@ export default function Landing() {
   const unreadNotifications = 0;
   const roleMenuLabel = getRoleMenuLabel(authUser?.role);
   const dashboardPath = getDashboardPathByRole(authUser?.role);
+  const renewApplicationPath = getRenewApplicationPathByRole(authUser?.role);
+  const primaryAction = getPrimaryActionByRole(authUser?.role);
+  const secondaryAction = getSecondaryActionByRole(authUser?.role);
   const navItems = [
     { label: "Features", href: "#pk-features" },
     { label: "How It Works", href: "#pk-how" },
@@ -1164,6 +1228,11 @@ export default function Landing() {
             <Link to={applyPath} onClick={() => setMenuOpen(false)} className="btn btn-ghost" style={{ marginTop: "6px" }}>
               Application
             </Link>
+            {renewApplicationPath ? (
+              <Link to={renewApplicationPath} onClick={() => setMenuOpen(false)} className="btn btn-ghost" style={{ marginTop: "6px" }}>
+                Renew Application
+              </Link>
+            ) : null}
             <Link to="/notifications" onClick={() => setMenuOpen(false)} className="btn btn-ghost" style={{ marginTop: "6px" }}>
               Notifications
             </Link>
@@ -1207,8 +1276,10 @@ export default function Landing() {
             <div className="pk-hero-btns pk-a4">
               {authUser ? (
                 <>
-                  <Link to={applyPath} className="btn btn-teal btn-lg">Apply for a Permit</Link>
-                  <Link to={vehiclePath} className="btn btn-ghost btn-lg">Vehicle</Link>
+                  <Link to={primaryAction.to} className="btn btn-teal btn-lg">{primaryAction.label}</Link>
+                  {secondaryAction?.to ? (
+                    <Link to={secondaryAction.to} className="btn btn-ghost btn-lg">{secondaryAction.label}</Link>
+                  ) : null}
                 </>
               ) : (
                 <>
@@ -1375,13 +1446,17 @@ export default function Landing() {
 function UserMenu({ open, role, onItemClick }) {
   const dashboardPath = getDashboardPathByRole(role);
   const applicationPath = getApplicationPathByRole(role);
-
+  const renewApplicationPath = getRenewApplicationPathByRole(role);
   const items = [
     { label: "Profile", to: "/profile" },
     { label: "Dashboard", to: dashboardPath },
     { label: "Application", to: applicationPath },
     { label: "Logout", to: "/logout" },
   ];
+
+  if (renewApplicationPath) {
+    items.splice(3, 0, { label: "Renew Application", to: renewApplicationPath });
+  }
 
   return (
     <div className={`pk-admin-menu${open ? " open" : ""}`} role="menu" aria-label="User menu">

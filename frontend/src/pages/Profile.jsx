@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import client from "../api/client";
 import { ENDPOINTS } from "../api/endpoints";
 import { getAuthToken } from "../auth/session";
+import { getCombinedStudentApplications, getRenewalMeta } from "./Student/renewalUtils";
 import "./Profile.css";
 
 function getStoredUser() {
@@ -34,12 +35,19 @@ function mapUserToProfile(user) {
   };
 }
 
-const parkingPermit = {
-  permitId: "PERMIT-CP-10924",
-  permitType: "Student",
-  status: "Active",
-  zone: "Zone B - East Campus",
-};
+function getStatusClassName(status) {
+  const normalized = String(status || "").toLowerCase();
+
+  if (normalized === "active") {
+    return "status-tag status-active";
+  }
+
+  if (normalized.includes("pending")) {
+    return "status-tag status-pending";
+  }
+
+  return "status-tag status-expired";
+}
 
 const vehicles = [
   {
@@ -72,6 +80,7 @@ export default function Profile() {
   const [userProfile, setUserProfile] = useState(() =>
     mapUserToProfile(getStoredUser())
   );
+  const [dashboard, setDashboard] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -96,6 +105,13 @@ export default function Profile() {
           setUserProfile(mapUserToProfile(apiUser));
           localStorage.setItem("auth_user", JSON.stringify(apiUser));
         }
+
+        if (String(apiUser?.role || "").toLowerCase() === "student") {
+          const dashboardResponse = await client.get(ENDPOINTS.STUDENT_DASHBOARD, {
+            skipAuthRedirect: true,
+          });
+          setDashboard(dashboardResponse?.data?.data || null);
+        }
       } catch (fetchError) {
         const status = fetchError?.response?.status;
         const message =
@@ -111,6 +127,28 @@ export default function Profile() {
 
     loadProfile();
   }, [hasToken]);
+
+  const applications = useMemo(
+    () =>
+      getCombinedStudentApplications(
+        dashboard?.student?.id,
+        dashboard?.application_history || [],
+      ),
+    [dashboard?.application_history, dashboard?.student?.id],
+  );
+  const latestApplication = applications[0] || null;
+  const renewalMeta = getRenewalMeta(latestApplication, dashboard?.student?.id);
+  const parkingPermit = {
+    permitId: latestApplication?.ticket?.ticket_id || "Not issued",
+    permitType: userProfile.designation || "Student",
+    status:
+      latestApplication?.status
+        ? latestApplication.is_renewal
+          ? "Renewal Pending"
+          : renewalMeta.lifecycleStatus || latestApplication.status
+        : "No Active Application",
+    zone: latestApplication?.ticket?.parking_slot || "Not assigned",
+  };
 
   return (
     <main className="profile-page">
@@ -161,11 +199,7 @@ export default function Profile() {
               <p>
                 <span>Permit Status</span>
                 <strong
-                  className={
-                    parkingPermit.status === "Active"
-                      ? "status-tag status-active"
-                      : "status-tag status-expired"
-                  }
+                  className={getStatusClassName(parkingPermit.status)}
                 >
                   {parkingPermit.status}
                 </strong>

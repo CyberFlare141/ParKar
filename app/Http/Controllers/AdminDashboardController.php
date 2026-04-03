@@ -8,6 +8,7 @@ use App\Models\ParkingApplication;
 use App\Models\Semester;
 use App\Models\User;
 use App\Support\AdminPresence;
+use DateTimeInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -86,7 +87,7 @@ class AdminDashboardController extends Controller
                         'id' => $log->id,
                         'action' => $log->action,
                         'reason' => $log->reason,
-                        'created_at' => $log->created_at?->toIso8601String(),
+                        'created_at' => $this->toIsoString($log->created_at),
                         'application' => $log->application ? [
                             'id' => $log->application->id,
                             'applicant_name' => $log->application->applicant_name,
@@ -108,8 +109,8 @@ class AdminDashboardController extends Controller
         return [
             'id' => $application->id,
             'status' => $application->status,
-            'created_at' => $application->created_at?->toIso8601String(),
-            'reviewed_at' => $application->reviewed_at?->toIso8601String(),
+            'created_at' => $this->toIsoString($application->created_at),
+            'reviewed_at' => $this->toIsoString($application->reviewed_at),
             'applicant_name' => $application->applicant_name,
             'applicant_email' => $application->applicant_email,
             'applicant_phone' => $application->applicant_phone,
@@ -130,9 +131,22 @@ class AdminDashboardController extends Controller
             ] : null,
             'ticket' => $application->parkingTicket ? [
                 'ticket_id' => $application->parkingTicket->ticket_id,
-                'issue_date' => $application->parkingTicket->issue_date?->toIso8601String(),
+                'issue_date' => $this->toIsoString($application->parkingTicket->issue_date),
                 'parking_slot' => $application->parkingTicket->parking_slot,
             ] : null,
         ];
+    }
+
+    private function toIsoString(mixed $value): ?string
+    {
+        if ($value instanceof DateTimeInterface) {
+            return $value->format(DateTimeInterface::ATOM);
+        }
+
+        if (is_string($value) && trim($value) !== '') {
+            return $value;
+        }
+
+        return null;
     }
 }

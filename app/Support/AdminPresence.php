@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\User;
+use DateTimeInterface;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -81,7 +82,7 @@ class AdminPresence
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
-                    'last_seen_at' => $user->updated_at?->toIso8601String(),
+                    'last_seen_at' => self::toIsoString($user->updated_at),
                 ],
             ]);
 
@@ -127,5 +128,18 @@ class AdminPresence
             $entries,
             now()->addMinutes(max($ttlMinutes, 1))
         );
+    }
+
+    private static function toIsoString(mixed $value): ?string
+    {
+        if ($value instanceof DateTimeInterface) {
+            return $value->format(DateTimeInterface::ATOM);
+        }
+
+        if (is_string($value) && trim($value) !== '') {
+            return $value;
+        }
+
+        return null;
     }
 }
