@@ -190,7 +190,7 @@ export default function ApplyParking() {
 
         if (!hasSemesters) {
           setFeedback(
-            "No active semesters are available yet. Run the semester seeder or add an active semester first.",
+            "No active semesters are available yet. Add one in the database first.",
           );
         }
       } catch (error) {
@@ -338,7 +338,7 @@ export default function ApplyParking() {
         semester_id: "No valid semester is available right now.",
       }));
       setFeedback(
-        "No active semester exists in the database yet. Please seed semesters or create one before submitting.",
+        "No active semester exists in the database yet. Please create one before submitting.",
       );
       return;
     }
