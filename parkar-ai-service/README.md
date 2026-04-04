@@ -146,7 +146,7 @@ public function register(): void
 ### 5. Run migration
 
 ```bash
-php artisan migrate
+The main Laravel app no longer uses `php artisan migrate`; it imports `schema.sql` through Docker on first startup.
 ```
 
 ---

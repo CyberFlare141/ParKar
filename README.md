@@ -64,6 +64,9 @@ ParKar reduces paperwork, saves administrative time, improves transparency, and 
 - **AI Layer:** Python (FastAPI) / External AI API  
 - **Database:** MySQL  
 
+This project now uses a database-first setup.
+Import source of truth: `schema.sql`
+
 ---
 
 ## UI Desing
@@ -174,5 +177,11 @@ POST   /api/admin/reject/{id}
 - Semester load prediction  
 - UI polishing and bug fixing  
 
+## Running The Database
 
+1. Run `docker compose down -v`
+2. Run `docker compose up -d --build`
+3. Run `docker exec -it parkar_app php artisan key:generate`
+
+MySQL imports `schema.sql` automatically on first startup of a fresh `mysql_data` volume. This replaces the old migration/seeder flow.
 
