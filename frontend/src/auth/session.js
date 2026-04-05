@@ -6,8 +6,21 @@ const LEGACY_TOKEN_KEY = "token";
 const LEGACY_USER_KEY = "user";
 const LEGACY_ROLE_KEY = "role";
 
+function normalizeToken(rawToken) {
+  if (typeof rawToken !== "string") return null;
+
+  const trimmed = rawToken.trim();
+  if (!trimmed || trimmed === "undefined" || trimmed === "null") {
+    return null;
+  }
+
+  return trimmed.replace(/^Bearer\s+/i, "").trim() || null;
+}
+
 export function getAuthToken() {
-  return localStorage.getItem(AUTH_TOKEN_KEY) || localStorage.getItem(LEGACY_TOKEN_KEY);
+  const primary = normalizeToken(localStorage.getItem(AUTH_TOKEN_KEY));
+  if (primary) return primary;
+  return normalizeToken(localStorage.getItem(LEGACY_TOKEN_KEY));
 }
 
 export function getAuthUser() {
@@ -34,13 +47,19 @@ export function getAuthRole() {
 }
 
 export function setAuthSession(token, user) {
+  const normalizedToken = normalizeToken(token);
+  if (!normalizedToken) {
+    clearAuthSession();
+    return;
+  }
+
   const resolvedRole = String(user?.role || "").toLowerCase();
 
-  localStorage.setItem(AUTH_TOKEN_KEY, token);
+  localStorage.setItem(AUTH_TOKEN_KEY, normalizedToken);
   localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
   localStorage.setItem(AUTH_ROLE_KEY, resolvedRole);
 
-  localStorage.setItem(LEGACY_TOKEN_KEY, token);
+  localStorage.setItem(LEGACY_TOKEN_KEY, normalizedToken);
   localStorage.setItem(LEGACY_USER_KEY, JSON.stringify(user));
   localStorage.setItem(LEGACY_ROLE_KEY, resolvedRole);
 }

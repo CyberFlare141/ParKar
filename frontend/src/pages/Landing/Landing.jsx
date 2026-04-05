@@ -192,6 +192,95 @@ const STYLES = `
     align-items: center;
     gap: 10px;
   }
+  #pk-root .pk-admin-controls {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  #pk-root .pk-notif-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: transparent;
+    color: #e2e4ea;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+  }
+  #pk-root .pk-notif-btn:hover {
+    border-color: #2dd4bf;
+    color: #2dd4bf;
+    background: rgba(45,212,191,0.08);
+  }
+  #pk-root .pk-bell-icon {
+    width: 18px;
+    height: 18px;
+    display: inline-flex;
+  }
+  #pk-root .pk-bell-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+  #pk-root .pk-notif-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    background: #ef4444;
+    color: #ffffff;
+    font-size: 0.68rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+    line-height: 1;
+    border: 1px solid #0b0d10;
+  }
+  #pk-root .pk-admin-trigger {
+    min-width: 102px;
+  }
+  #pk-root .pk-admin-menu {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    width: 210px;
+    background: rgba(17,20,24,0.98);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 8px;
+    box-shadow: 0 18px 38px rgba(0,0,0,0.3);
+    opacity: 0;
+    transform: translateY(-8px);
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+  #pk-root .pk-admin-menu.open {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+  #pk-root .pk-admin-item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    border-radius: 8px;
+    padding: 9px 10px;
+    color: #e2e4ea;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+  #pk-root .pk-admin-item:hover {
+    background: rgba(45,212,191,0.12);
+    color: #b4fff1;
+  }
   #pk-root .pk-user-chip {
     display: inline-flex;
     align-items: center;
@@ -907,37 +996,108 @@ function getUserDisplayName() {
 function getVehiclePathByRole(role) {
   if (role === "teacher") return "/teacher/vehicles";
   if (role === "student") return "/student/vehicles";
+  return null;
+}
+
+function getApplicationPathByRole(role) {
+  if (role === "admin") return "/admin/review";
+  if (role === "student") return "/student/apply";
+  if (role === "teacher") return "/teacher/dashboard";
   return getDashboardPathByRole(role);
 }
 
-function getApplyPathByRole(role) {
-  if (role === "student") return "/student/apply";
-  return getDashboardPathByRole(role);
+function getRenewApplicationPathByRole(role) {
+  if (role === "student") return "/student/renew";
+  return null;
+}
+
+function getPrimaryActionByRole(role) {
+  if (role === "admin") {
+    return {
+      to: "/admin/review",
+      label: "Open Review Queue",
+    };
+  }
+
+  if (role === "teacher") {
+    return {
+      to: "/teacher/dashboard",
+      label: "Open Dashboard",
+    };
+  }
+
+  if (role === "student") {
+    return {
+      to: "/student/apply",
+      label: "Apply for a Permit",
+    };
+  }
+
+  return {
+    to: "/register",
+    label: "Apply for a Permit",
+  };
+}
+
+function getSecondaryActionByRole(role) {
+  if (role === "admin") {
+    return {
+      to: "/admin/dashboard",
+      label: "Admin Dashboard",
+    };
+  }
+
+  if (role === "teacher") {
+    return {
+      to: "/teacher/vehicles",
+      label: "Vehicles",
+    };
+  }
+
+  if (role === "student") {
+    return {
+      to: "/student/vehicles",
+      label: "Vehicle",
+    };
+  }
+
+  return {
+    to: "/login",
+    label: "Sign In",
+  };
+}
+
+function getRoleMenuLabel(role) {
+  const value = String(role || "").trim().toLowerCase();
+  if (!value) return "User";
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 export default function Landing() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [testi,    setTesti]    = useState(0);
   const [userName, setUserName] = useState(getUserDisplayName());
+  const userMenuRef = useRef(null);
   
   const authUser = getAuthUser();
   const token = getAuthToken();
   const isLoggedIn = Boolean(token && (authUser || userName));
-  const applyPath = getApplyPathByRole(authUser?.role);
+  const applyPath = getApplicationPathByRole(authUser?.role);
   const vehiclePath = getVehiclePathByRole(authUser?.role);
+  const unreadNotifications = 0;
+  const roleMenuLabel = getRoleMenuLabel(authUser?.role);
+  const dashboardPath = getDashboardPathByRole(authUser?.role);
+  const renewApplicationPath = getRenewApplicationPathByRole(authUser?.role);
+  const primaryAction = getPrimaryActionByRole(authUser?.role);
+  const secondaryAction = getSecondaryActionByRole(authUser?.role);
   const navItems = [
     { label: "Features", href: "#pk-features" },
     { label: "How It Works", href: "#pk-how" },
     { label: "Permits", href: "#pk-permits" },
     { label: "FAQ", href: "#pk-faq" },
     { label: "About Us", to: "/about" },
-    ...(isLoggedIn
-      ? [
-          { label: "Profile", to: "/profile" },
-          { label: "Notifications", to: "/notifications" },
-        ]
-      : []),
   ];
 
   useEffect(() => {
@@ -959,6 +1119,18 @@ export default function Landing() {
   useEffect(() => {
     const id = setInterval(() => setTesti(p => (p + 1) % TESTIMONIALS.length), 4500);
     return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (!userMenuRef.current) return;
+      if (!userMenuRef.current.contains(event.target)) {
+        setUserMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
 
   return (
@@ -986,10 +1158,37 @@ export default function Landing() {
 
         <div className="pk-nav-right">
           {authUser ? (
-            <>
-              <Link to={getDashboardPathByRole(authUser?.role)} className="btn btn-ghost">Dashboard</Link>
-              <Link to="/logout" className="btn btn-teal">Logout</Link>
-            </>
+            <div className="pk-admin-controls" ref={userMenuRef}>
+              <Link to="/notifications" className="pk-notif-btn" aria-label="Notifications">
+                <span className="pk-bell-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" focusable="false">
+                    <path
+                      d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-4v-1l-1.8-1.8V11a5.2 5.2 0 0 0-4.2-5.1V5a1 1 0 1 0-2 0v.9A5.2 5.2 0 0 0 6.8 11v4.2L5 17v1h14Z"
+                      fill="currentColor"
+                    />
+                  </svg>
+                </span>
+                {unreadNotifications > 0 ? (
+                  <span className="pk-notif-badge">{unreadNotifications}</span>
+                ) : null}
+              </Link>
+
+              <button
+                type="button"
+                className="btn btn-teal pk-admin-trigger"
+                onClick={() => setUserMenuOpen((open) => !open)}
+                aria-expanded={userMenuOpen}
+                aria-haspopup="menu"
+              >
+                {roleMenuLabel}
+              </button>
+
+              <UserMenu
+                open={userMenuOpen}
+                role={authUser?.role}
+                onItemClick={() => setUserMenuOpen(false)}
+              />
+            </div>
           ) : (
             <>
               <Link to="/login" className="btn btn-ghost">Sign In</Link>
@@ -1020,11 +1219,25 @@ export default function Landing() {
         )}
         {authUser ? (
           <>
-            <Link to={applyPath} onClick={() => setMenuOpen(false)} className="btn btn-teal" style={{ marginTop: "8px" }}>
-              Apply for Permit
+            <Link to="/profile" onClick={() => setMenuOpen(false)} className="btn btn-ghost" style={{ marginTop: "8px" }}>
+              Profile
             </Link>
-            <Link to={vehiclePath} onClick={() => setMenuOpen(false)} className="btn btn-ghost" style={{ marginTop: "6px" }}>
-              Vehicle
+            <Link to={dashboardPath} onClick={() => setMenuOpen(false)} className="btn btn-ghost" style={{ marginTop: "6px" }}>
+              Dashboard
+            </Link>
+            <Link to={applyPath} onClick={() => setMenuOpen(false)} className="btn btn-ghost" style={{ marginTop: "6px" }}>
+              Application
+            </Link>
+            {renewApplicationPath ? (
+              <Link to={renewApplicationPath} onClick={() => setMenuOpen(false)} className="btn btn-ghost" style={{ marginTop: "6px" }}>
+                Renew Application
+              </Link>
+            ) : null}
+            <Link to="/notifications" onClick={() => setMenuOpen(false)} className="btn btn-ghost" style={{ marginTop: "6px" }}>
+              Notifications
+            </Link>
+            <Link to="/logout" onClick={() => setMenuOpen(false)} className="btn btn-teal" style={{ marginTop: "6px" }}>
+              Logout
             </Link>
           </>
         ) : (
@@ -1063,8 +1276,10 @@ export default function Landing() {
             <div className="pk-hero-btns pk-a4">
               {authUser ? (
                 <>
-                  <Link to={applyPath} className="btn btn-teal btn-lg">Apply for a Permit</Link>
-                  <Link to={vehiclePath} className="btn btn-ghost btn-lg">Vehicle</Link>
+                  <Link to={primaryAction.to} className="btn btn-teal btn-lg">{primaryAction.label}</Link>
+                  {secondaryAction?.to ? (
+                    <Link to={secondaryAction.to} className="btn btn-ghost btn-lg">{secondaryAction.label}</Link>
+                  ) : null}
                 </>
               ) : (
                 <>
@@ -1224,6 +1439,38 @@ export default function Landing() {
           </div>
         </div>
       </footer>
+    </div>
+  );
+}
+
+function UserMenu({ open, role, onItemClick }) {
+  const dashboardPath = getDashboardPathByRole(role);
+  const applicationPath = getApplicationPathByRole(role);
+  const renewApplicationPath = getRenewApplicationPathByRole(role);
+  const items = [
+    { label: "Profile", to: "/profile" },
+    { label: "Dashboard", to: dashboardPath },
+    { label: "Application", to: applicationPath },
+    { label: "Logout", to: "/logout" },
+  ];
+
+  if (renewApplicationPath) {
+    items.splice(3, 0, { label: "Renew Application", to: renewApplicationPath });
+  }
+
+  return (
+    <div className={`pk-admin-menu${open ? " open" : ""}`} role="menu" aria-label="User menu">
+      {items.map((item) => (
+        <Link
+          key={item.label}
+          to={item.to}
+          className="pk-admin-item"
+          role="menuitem"
+          onClick={onItemClick}
+        >
+          {item.label}
+        </Link>
+      ))}
     </div>
   );
 }

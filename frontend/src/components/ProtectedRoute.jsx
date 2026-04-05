@@ -5,6 +5,7 @@ import {
   getAuthRole,
   getAuthUser,
   getDashboardPathByRole,
+  isTokenExpired,
 } from "../auth/session";
 
 export default function ProtectedRoute({ children, allowedRoles = null, role = null }) {
@@ -21,6 +22,11 @@ export default function ProtectedRoute({ children, allowedRoles = null, role = n
       : null;
 
   if (!token) {
+    return <Navigate to="/login" replace state={{ from: location }} />;
+  }
+
+  if (isTokenExpired(token)) {
+    clearAuthSession();
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 

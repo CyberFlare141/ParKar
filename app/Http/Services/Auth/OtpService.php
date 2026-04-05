@@ -4,6 +4,7 @@ namespace App\Http\Services\Auth;
 
 use App\Models\AuthOtp;
 use App\Models\User;
+use DateTimeInterface;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -41,7 +42,7 @@ class OtpService
 
         $response = [
             'challenge_id' => $record->challenge_id,
-            'expires_at' => $record->expires_at?->toIso8601String(),
+            'expires_at' => $this->toIsoString($record->expires_at),
             'channel' => $record->channel,
         ];
 
@@ -168,5 +169,18 @@ class OtpService
 
             throw $exception;
         }
+    }
+
+    private function toIsoString(mixed $value): ?string
+    {
+        if ($value instanceof DateTimeInterface) {
+            return $value->format(DateTimeInterface::ATOM);
+        }
+
+        if (is_string($value) && trim($value) !== '') {
+            return $value;
+        }
+
+        return null;
     }
 }

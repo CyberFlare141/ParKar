@@ -8,8 +8,7 @@ class UserService
 {
     public function getUsers()
     {
-        $users = User::with('posts')->get();
+        $users = User::query()->get();
         return response()->json($users);
     }
 }
-

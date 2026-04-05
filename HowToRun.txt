@@ -2,11 +2,22 @@
 docker compose down -v
 docker compose up -d --build
 docker exec -it parkar_app php artisan key:generate
-docker exec -it parkar_app php artisan migrate
 
+MySQL now uses database-first import from `schema.sql`.
+When the `mysql_data` volume is empty, Docker imports it automatically.
 
-docker compose exec app php artisan migrate:fresh   //THis drop previous table
+ 
+If you change `schema.sql`, rebuild the database with:
+docker compose down -v
+docker compose up -d --build
+
 docker compose up -d   for regular run
 
 
 Now check: http://localhost:8000/api/health
+
+cd f:\ParKar\ParKar\parkar-ai-service
+docker build -t parkar-ai .
+docker run -p 5001:5001 parkar-ai
+
+change folder path in line 14

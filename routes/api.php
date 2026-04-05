@@ -1,8 +1,11 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AdminDashboardController;
+use App\Http\Controllers\AdminParkingApplicationController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\StudentParkingApplicationController;
 use App\Http\Controllers\UsersController;
 use Illuminate\Http\Request;
 
@@ -31,12 +34,12 @@ Route::middleware('jwt.auth')->group(function () {
 });
 
 Route::prefix('admin')->middleware(['jwt.auth', 'role.admin'])->group(function () {
-    Route::get('/dashboard', function (Request $request) {
-        return response()->json([
-            'message' => 'Admin access granted.',
-            'user' => $request->user()?->only(['id', 'name', 'email', 'role']),
-        ]);
-    });
+    Route::get('/dashboard', AdminDashboardController::class);
+    Route::get('/parking-applications', [AdminParkingApplicationController::class, 'index']);
+    Route::get('/parking-applications/{parkingApplication}/documents', [AdminParkingApplicationController::class, 'documents']);
+    Route::patch('/parking-applications/{parkingApplication}/status', [AdminParkingApplicationController::class, 'review']);
+    Route::get('/documents/{document}/view', [AdminParkingApplicationController::class, 'viewDocument']);
+    Route::get('/documents/{document}/download', [AdminParkingApplicationController::class, 'downloadDocument']);
 });
 
 Route::prefix('teacher')->middleware(['jwt.auth', 'role.teacher'])->group(function () {
@@ -55,4 +58,7 @@ Route::prefix('student')->middleware(['jwt.auth', 'role.student'])->group(functi
             'user' => $request->user()?->only(['id', 'name', 'email', 'role']),
         ]);
     });
+    Route::get('/dashboard/summary', [StudentParkingApplicationController::class, 'dashboard']);
+    Route::get('/semesters', [StudentParkingApplicationController::class, 'semesters']);
+    Route::post('/parking-applications', [StudentParkingApplicationController::class, 'store']);
 });

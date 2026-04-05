@@ -116,7 +116,7 @@ export default function Register() {
         otp: otp.trim(),
       });
 
-      setAuthSession(response.data.token, response.data.user);
+      setAuthSession(response.data.token || response.data.access_token, response.data.user);
       setFeedback("Account verified successfully.");
       navigate("/", { replace: true });
     } catch (error) {

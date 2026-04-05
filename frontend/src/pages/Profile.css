@@ -87,6 +87,10 @@
   @apply bg-rose-500/20 text-rose-300;
 }
 
+.status-pending {
+  @apply bg-amber-500/20 text-amber-300;
+}
+
 .vehicles-section h2 {
   @apply m-0 text-white;
 }

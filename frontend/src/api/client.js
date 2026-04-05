@@ -1,11 +1,18 @@
 import axios from "axios";
 import { clearAuthSession, getAuthToken } from "../auth/session";
 
-const resolvedBaseUrl =
-  import.meta.env.VITE_API_URL?.trim() || "http://localhost:8000/api";
+function resolveBaseUrl() {
+  const configuredUrl = import.meta.env.VITE_API_URL?.trim();
+
+  if (configuredUrl) {
+    return configuredUrl;
+  }
+
+  return "/api";
+}
 
 const client = axios.create({
-  baseURL: resolvedBaseUrl,
+  baseURL: resolveBaseUrl(),
 });
 
 function redirectToLogin() {

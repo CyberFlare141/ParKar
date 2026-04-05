@@ -1,0 +1,12 @@
+Open:
+http://localhost:18081
+
+The database schema is imported automatically from `schema.sql` when you start Docker with a fresh `mysql_data` volume.
+
+
+Use these login values:
+System: MySQL
+Server: mysql (or parkar_mysql)
+Username: root
+Password: ParKar
+Database: ParKar
