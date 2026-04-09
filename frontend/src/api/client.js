@@ -1,7 +1,7 @@
 import axios from "axios";
 import { clearAuthSession, getAuthToken } from "../auth/session";
 
-function resolveBaseUrl() {
+export function resolveBaseUrl() {
   const configuredUrl = import.meta.env.VITE_API_URL?.trim();
 
   if (configuredUrl) {

@@ -2,17 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import client from "../api/client";
 import { ENDPOINTS } from "../api/endpoints";
-import { getAuthToken } from "../auth/session";
+import { getAuthToken, getAuthUser, setAuthSession } from "../auth/session";
 import { getCombinedStudentApplications, getRenewalMeta } from "./Student/renewalUtils";
 import "./Profile.css";
 
 function getStoredUser() {
-  try {
-    const raw = localStorage.getItem("auth_user");
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
+  return getAuthUser();
 }
 
 function mapUserToProfile(user) {
@@ -103,7 +98,7 @@ export default function Profile() {
         const apiUser = response?.data?.user;
         if (apiUser) {
           setUserProfile(mapUserToProfile(apiUser));
-          localStorage.setItem("auth_user", JSON.stringify(apiUser));
+          setAuthSession(getAuthToken(), apiUser);
         }
 
         if (String(apiUser?.role || "").toLowerCase() === "student") {

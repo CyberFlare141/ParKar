@@ -16,9 +16,14 @@ Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
     Route::post('/resend-otp', [AuthController::class, 'resendOtp']);
+    Route::middleware('web')->group(function () {
+        Route::get('/google/redirect', [AuthController::class, 'googleRedirect']);
+        Route::get('/google/callback', [AuthController::class, 'googleCallback']);
+    });
     Route::middleware('jwt.auth')->group(function () {
         Route::get('/me', [AuthController::class, 'me']);
         Route::post('/logout', [AuthController::class, 'logout']);
+        Route::post('/google/link', [AuthController::class, 'googleLink']);
     });
 });
 

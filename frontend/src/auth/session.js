@@ -6,6 +6,29 @@ const LEGACY_TOKEN_KEY = "token";
 const LEGACY_USER_KEY = "user";
 const LEGACY_ROLE_KEY = "role";
 
+function readStorage(key) {
+  if (typeof window === "undefined") return null;
+
+  return (
+    window.sessionStorage.getItem(key) ??
+    window.localStorage.getItem(key)
+  );
+}
+
+function writeSession(key, value) {
+  if (typeof window === "undefined") return;
+
+  window.sessionStorage.setItem(key, value);
+  window.localStorage.removeItem(key);
+}
+
+function removeStoredValue(key) {
+  if (typeof window === "undefined") return;
+
+  window.sessionStorage.removeItem(key);
+  window.localStorage.removeItem(key);
+}
+
 function normalizeToken(rawToken) {
   if (typeof rawToken !== "string") return null;
 
@@ -18,13 +41,13 @@ function normalizeToken(rawToken) {
 }
 
 export function getAuthToken() {
-  const primary = normalizeToken(localStorage.getItem(AUTH_TOKEN_KEY));
+  const primary = normalizeToken(readStorage(AUTH_TOKEN_KEY));
   if (primary) return primary;
-  return normalizeToken(localStorage.getItem(LEGACY_TOKEN_KEY));
+  return normalizeToken(readStorage(LEGACY_TOKEN_KEY));
 }
 
 export function getAuthUser() {
-  const raw = localStorage.getItem(AUTH_USER_KEY) || localStorage.getItem(LEGACY_USER_KEY);
+  const raw = readStorage(AUTH_USER_KEY) || readStorage(LEGACY_USER_KEY);
   if (!raw) return null;
 
   try {
@@ -40,8 +63,7 @@ export function getAuthRole() {
     return String(user.role).toLowerCase();
   }
 
-  const persistedRole =
-    localStorage.getItem(AUTH_ROLE_KEY) || localStorage.getItem(LEGACY_ROLE_KEY);
+  const persistedRole = readStorage(AUTH_ROLE_KEY) || readStorage(LEGACY_ROLE_KEY);
 
   return persistedRole ? persistedRole.toLowerCase() : null;
 }
@@ -55,23 +77,23 @@ export function setAuthSession(token, user) {
 
   const resolvedRole = String(user?.role || "").toLowerCase();
 
-  localStorage.setItem(AUTH_TOKEN_KEY, normalizedToken);
-  localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
-  localStorage.setItem(AUTH_ROLE_KEY, resolvedRole);
+  writeSession(AUTH_TOKEN_KEY, normalizedToken);
+  writeSession(AUTH_USER_KEY, JSON.stringify(user));
+  writeSession(AUTH_ROLE_KEY, resolvedRole);
 
-  localStorage.setItem(LEGACY_TOKEN_KEY, normalizedToken);
-  localStorage.setItem(LEGACY_USER_KEY, JSON.stringify(user));
-  localStorage.setItem(LEGACY_ROLE_KEY, resolvedRole);
+  writeSession(LEGACY_TOKEN_KEY, normalizedToken);
+  writeSession(LEGACY_USER_KEY, JSON.stringify(user));
+  writeSession(LEGACY_ROLE_KEY, resolvedRole);
 }
 
 export function clearAuthSession() {
-  localStorage.removeItem(AUTH_TOKEN_KEY);
-  localStorage.removeItem(AUTH_USER_KEY);
-  localStorage.removeItem(AUTH_ROLE_KEY);
+  removeStoredValue(AUTH_TOKEN_KEY);
+  removeStoredValue(AUTH_USER_KEY);
+  removeStoredValue(AUTH_ROLE_KEY);
 
-  localStorage.removeItem(LEGACY_TOKEN_KEY);
-  localStorage.removeItem(LEGACY_USER_KEY);
-  localStorage.removeItem(LEGACY_ROLE_KEY);
+  removeStoredValue(LEGACY_TOKEN_KEY);
+  removeStoredValue(LEGACY_USER_KEY);
+  removeStoredValue(LEGACY_ROLE_KEY);
 }
 
 export function getDashboardPathByRole(role) {
