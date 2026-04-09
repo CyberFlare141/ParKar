@@ -2,6 +2,7 @@ export const ENDPOINTS = {
   HEALTH: "/health",
   REGISTER: "/auth/register",
   LOGIN: "/auth/login",
+  GOOGLE_REDIRECT: "/auth/google/redirect",
   VERIFY_OTP: "/auth/verify-otp",
   RESEND_OTP: "/auth/resend-otp",
   ME: "/auth/me",

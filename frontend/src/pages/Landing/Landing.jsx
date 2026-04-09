@@ -983,14 +983,8 @@ const STYLES = `
 
 /* ── Component ────────────────────────────────────────────── */
 function getUserDisplayName() {
-  try {
-    const rawUser = localStorage.getItem("auth_user");
-    if (!rawUser) return "";
-    const user = JSON.parse(rawUser);
-    return user?.fullName || user?.name || user?.studentId || user?.email || "";
-  } catch {
-    return "";
-  }
+  const user = getAuthUser();
+  return user?.fullName || user?.name || user?.studentId || user?.email || "";
 }
 
 function getVehiclePathByRole(role) {

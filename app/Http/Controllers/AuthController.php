@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\GoogleAuthException;
+use App\Http\Services\Auth\GoogleAuthService;
 use App\Http\Services\Auth\JwtService;
 use App\Http\Services\Auth\OtpService;
 use App\Http\Services\Auth\RoleDetectionService;
@@ -9,17 +11,22 @@ use App\Models\AuthOtp;
 use App\Models\User;
 use App\Support\AdminPresence;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
+use Laravel\Socialite\Facades\Socialite;
+use Laravel\Socialite\Two\InvalidStateException;
 
 class AuthController extends Controller
 {
     public function __construct(
         private readonly OtpService $otpService,
         private readonly JwtService $jwtService,
-        private readonly RoleDetectionService $roleDetectionService
+        private readonly RoleDetectionService $roleDetectionService,
+        private readonly GoogleAuthService $googleAuthService
     ) {
     }
 
@@ -93,6 +100,12 @@ class AuthController extends Controller
 
         $email = strtolower(trim((string) $payload['email']));
         $user = User::where('email', $email)->first();
+
+        if ($user && $user->password === null && in_array((string) $user->auth_provider, ['google', 'both'], true)) {
+            return response()->json([
+                'message' => 'This account uses Google sign-in. Continue with Google to access it.',
+            ], 422);
+        }
 
         if (!$user || !Hash::check((string) $payload['password'], (string) $user->password)) {
             return response()->json([
@@ -169,7 +182,7 @@ class AuthController extends Controller
             ], $verification['status']);
         }
 
-        /** @var \App\Models\User $user */
+        /** @var User $user */
         $user = $verification['user'];
 
         if ($payload['purpose'] === 'register' && !$user->email_verified_at) {
@@ -195,13 +208,13 @@ class AuthController extends Controller
             'message' => 'OTP verified successfully.',
             'token' => $token,
             'token_type' => 'Bearer',
-            'user' => $user->only(['id', 'name', 'email', 'role', 'phone', 'university_id', 'department']),
+            'user' => $this->serializeUser($user),
         ]);
     }
 
     public function me(Request $request): JsonResponse
     {
-        /** @var \App\Models\User|null $user */
+        /** @var User|null $user */
         $user = $request->user();
         if (!$user) {
             return response()->json([
@@ -210,13 +223,13 @@ class AuthController extends Controller
         }
 
         return response()->json([
-            'user' => $user->only(['id', 'name', 'email', 'role', 'phone', 'university_id', 'department']),
+            'user' => $this->serializeUser($user),
         ]);
     }
 
     public function logout(Request $request): JsonResponse
     {
-        /** @var \App\Models\User|null $user */
+        /** @var User|null $user */
         $user = $request->user();
 
         if (!$user) {
@@ -289,6 +302,128 @@ class AuthController extends Controller
         ]);
     }
 
+    public function googleRedirect(): RedirectResponse
+    {
+        return Socialite::driver('google')
+            ->scopes(['openid', 'email', 'profile'])
+            ->redirect();
+    }
+
+    public function googleCallback(Request $request): JsonResponse|RedirectResponse
+    {
+        if ($request->query('error') === 'access_denied') {
+            return $this->redirectToFrontendLogin([
+                'error' => 'access_denied',
+            ]);
+        }
+
+        try {
+            $googleUser = Socialite::driver('google')->user();
+        } catch (InvalidStateException) {
+            return response()->json([
+                'error' => 'Invalid OAuth state.',
+            ], 422);
+        } catch (\Throwable $exception) {
+            Log::error('Google OAuth callback failed.', [
+                'message' => $exception->getMessage(),
+                'path' => $request->path(),
+            ]);
+
+            return response()->json([
+                'error' => 'Google authentication failed.',
+            ], 500);
+        }
+
+        $email = strtolower(trim((string) $googleUser->getEmail()));
+        if ($email === '') {
+            return response()->json([
+                'error' => 'Google account did not return a usable email address.',
+            ], 422);
+        }
+
+        if (!str_ends_with($email, '@aust.edu') && !$this->roleDetectionService->isAllowListedEmail($email)) {
+            return response()->json([
+                'error' => 'Only @aust.edu accounts allowed.',
+            ], 403);
+        }
+
+        try {
+            $user = $this->googleAuthService->findOrCreate($googleUser);
+        } catch (GoogleAuthException $exception) {
+            return response()->json([
+                'error' => $exception->getMessage(),
+            ], $exception->status());
+        }
+
+        $this->syncUserRoleFromEmail($user);
+        AdminPresence::markOnline($user, (int) config('jwt.ttl_minutes', 60));
+
+        AuthOtp::query()
+            ->where('user_id', $user->id)
+            ->where('purpose', 'login')
+            ->whereNull('consumed_at')
+            ->whereNull('invalidated_at')
+            ->update(['invalidated_at' => now()]);
+
+        $token = $this->jwtService->issueToken($user);
+
+        return $this->redirectToFrontendLogin([
+            'token' => $token,
+            'user' => json_encode($this->serializeUser($user), JSON_UNESCAPED_SLASHES),
+        ]);
+    }
+
+    public function googleLink(Request $request): JsonResponse
+    {
+        $payload = $request->validate([
+            'access_token' => ['required', 'string'],
+        ]);
+
+        try {
+            $googleUser = Socialite::driver('google')->userFromToken((string) $payload['access_token']);
+        } catch (\Throwable $exception) {
+            Log::error('Google account linking failed.', [
+                'message' => $exception->getMessage(),
+                'path' => $request->path(),
+            ]);
+
+            return response()->json([
+                'message' => 'Google authentication failed.',
+            ], 500);
+        }
+
+        $email = strtolower(trim((string) $googleUser->getEmail()));
+        if ($email === '') {
+            return response()->json([
+                'message' => 'Google account did not return a usable email address.',
+            ], 422);
+        }
+
+        if (!str_ends_with($email, '@aust.edu') && !$this->roleDetectionService->isAllowListedEmail($email)) {
+            return response()->json([
+                'message' => 'Only @aust.edu accounts allowed.',
+            ], 403);
+        }
+
+        /** @var User $user */
+        $user = $request->user();
+
+        try {
+            $linkedUser = $this->googleAuthService->linkAuthenticatedUser($user, $googleUser);
+        } catch (GoogleAuthException $exception) {
+            return response()->json([
+                'message' => $exception->getMessage(),
+            ], $exception->status());
+        }
+
+        $this->syncUserRoleFromEmail($linkedUser);
+
+        return response()->json([
+            'message' => 'Google account linked successfully.',
+            'user' => $this->serializeUser($linkedUser),
+        ]);
+    }
+
     private function syncUserRoleFromEmail(User $user): string
     {
         $detectedRole = $this->detectUserRoleOrFail((string) $user->email);
@@ -310,5 +445,36 @@ class AuthController extends Controller
         }
 
         return $role;
+    }
+
+    private function serializeUser(User $user): array
+    {
+        return $user->only([
+            'id',
+            'name',
+            'email',
+            'role',
+            'phone',
+            'university_id',
+            'department',
+            'google_avatar',
+            'auth_provider',
+        ]);
+    }
+
+    private function redirectToFrontendLogin(array $params = []): RedirectResponse
+    {
+        $baseUrl = trim((string) config('services.google.frontend_redirect'));
+        $query = http_build_query(array_filter(
+            $params,
+            static fn (mixed $value): bool => $value !== null && $value !== ''
+        ));
+
+        $target = $baseUrl !== '' ? $baseUrl : url('/login');
+        if ($query !== '') {
+            $target .= (str_contains($target, '?') ? '&' : '?') . $query;
+        }
+
+        return redirect()->away($target);
     }
 }
