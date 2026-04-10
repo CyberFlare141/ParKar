@@ -36,23 +36,25 @@ import AIAnalysis from "./pages/Admin/AIAnalysis";
 import Reports from "./pages/Admin/Reports";
 import AuditLogs from "./pages/Admin/AuditLogs";
 import BackButtonLayout from "./components/BackButtonLayout";
+import GoogleAuthCallbackHandler from "./components/GoogleAuthCallbackHandler";
 
 function App() {
   return (
-    <Routes>
-      {/* Landing */}
-      <Route path="/" element={<Landing />} />
-      <Route element={<BackButtonLayout />}>
-        <Route path="/about" element={<About />} />
-        <Route path="/contact" element={<Contact />} />
-        <Route
-          path="/profile"
-          element={
-            <ProtectedRoute>
-              <Profile />
-            </ProtectedRoute>
-          }
-        />
+      <Routes>
+        {/* Landing */}
+        <Route path="/" element={<Landing />} />
+        <Route path="/auth/google/success" element={<GoogleAuthCallbackHandler />} />
+        <Route element={<BackButtonLayout />}>
+          <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
 
         {/* Auth */}
         <Route path="/login" element={<Login />} />
@@ -210,11 +212,11 @@ function App() {
             </ProtectedRoute>
           }
         />
-      </Route>
+        </Route>
 
-      {/* 404 */}
-      <Route path="*" element={<Navigate to="/" />} />
-    </Routes>
+        {/* 404 */}
+        <Route path="*" element={<Navigate to="/" />} />
+      </Routes>
   );
 }
 

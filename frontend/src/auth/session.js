@@ -19,7 +19,7 @@ function writeSession(key, value) {
   if (typeof window === "undefined") return;
 
   window.sessionStorage.setItem(key, value);
-  window.localStorage.removeItem(key);
+  window.localStorage.setItem(key, value);
 }
 
 function removeStoredValue(key) {
@@ -84,6 +84,8 @@ export function setAuthSession(token, user) {
   writeSession(LEGACY_TOKEN_KEY, normalizedToken);
   writeSession(LEGACY_USER_KEY, JSON.stringify(user));
   writeSession(LEGACY_ROLE_KEY, resolvedRole);
+
+  window.dispatchEvent(new Event("auth-session-changed"));
 }
 
 export function clearAuthSession() {

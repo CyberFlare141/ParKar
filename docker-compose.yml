@@ -5,8 +5,9 @@ services:
       dockerfile: ./docker/php/Dockerfile
     volumes:
       - .:/var/www
+      - app_vendor:/var/www/vendor
     environment:
-      - AI_SERVICE_URL=http://parkar_ai:5001
+      - AI_SERVICE_URL=http://ai:5001
       - AI_SERVICE_TIMEOUT=30
     depends_on:
       - mysql
@@ -81,6 +82,7 @@ services:
 
 volumes:
   mysql_data:
+  app_vendor:
 
 networks:
   parkar:

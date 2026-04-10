@@ -2,6 +2,7 @@ Open:
 http://localhost:18081
 
 The database schema is imported automatically from `schema.sql` when you start Docker with a fresh `mysql_data` volume.
+For an existing database volume, apply SQL patches from `database/patches` instead of Laravel migrations.
 
 
 Use these login values:

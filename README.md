@@ -181,7 +181,14 @@ POST   /api/admin/reject/{id}
 
 1. Run `docker compose down -v`
 2. Run `docker compose up -d --build`
-3. Run `docker exec -it parkar_app php artisan key:generate`
+3. Run `docker compose exec app php artisan key:generate`
 
 MySQL imports `schema.sql` automatically on first startup of a fresh `mysql_data` volume. This replaces the old migration/seeder flow.
+Do not run Laravel migrations for local setup; keep schema changes in `schema.sql`.
+For an existing `mysql_data` volume, apply compatible SQL patches from `database/patches` instead of running Laravel migrations.
 
+Example:
+
+```powershell
+Get-Content database\patches\2026_04_10_google_oauth_users.sql | docker compose exec -T mysql mysql -uroot -pParKar -D ParKar
+```
