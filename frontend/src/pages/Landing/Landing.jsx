@@ -1104,9 +1104,11 @@ export default function Landing() {
     const syncUser = () => setUserName(getUserDisplayName());
     window.addEventListener("storage", syncUser);
     window.addEventListener("focus", syncUser);
+    window.addEventListener("auth-session-changed", syncUser);
     return () => {
       window.removeEventListener("storage", syncUser);
       window.removeEventListener("focus", syncUser);
+      window.removeEventListener("auth-session-changed", syncUser);
     };
   }, []);
 

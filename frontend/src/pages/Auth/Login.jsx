@@ -43,8 +43,7 @@ export default function Login() {
 
     if (token && user) {
       setAuthSession(token, user);
-      window.history.replaceState({}, document.title, window.location.pathname);
-      navigate(getDashboardPathByRole(user?.role), { replace: true });
+      window.location.replace("/");
       return;
     }
 
