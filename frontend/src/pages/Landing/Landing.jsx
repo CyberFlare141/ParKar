@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import logo from "../../assets/logo.png";
-import { getAuthToken, getAuthUser, getDashboardPathByRole } from "../../auth/session";
+import { getAuthUser, getDashboardPathByRole } from "../../auth/session";
 
 /*
  * ParKar Landing Page
@@ -987,12 +987,6 @@ function getUserDisplayName() {
   return user?.fullName || user?.name || user?.studentId || user?.email || "";
 }
 
-function getVehiclePathByRole(role) {
-  if (role === "teacher") return "/teacher/vehicles";
-  if (role === "student") return "/student/vehicles";
-  return null;
-}
-
 function getApplicationPathByRole(role) {
   if (role === "admin") return "/admin/review";
   if (role === "student") return "/student/apply";
@@ -1072,14 +1066,11 @@ export default function Landing() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [testi,    setTesti]    = useState(0);
-  const [userName, setUserName] = useState(getUserDisplayName());
+  const [, setUserName] = useState(getUserDisplayName());
   const userMenuRef = useRef(null);
   
   const authUser = getAuthUser();
-  const token = getAuthToken();
-  const isLoggedIn = Boolean(token && (authUser || userName));
   const applyPath = getApplicationPathByRole(authUser?.role);
-  const vehiclePath = getVehiclePathByRole(authUser?.role);
   const unreadNotifications = 0;
   const roleMenuLabel = getRoleMenuLabel(authUser?.role);
   const dashboardPath = getDashboardPathByRole(authUser?.role);
