@@ -5,7 +5,7 @@ services:
     plan: starter
     dockerfilePath: ./Dockerfile
     dockerContext: .
-    healthCheckPath: /api/health
+    healthCheckPath: /api/health 
     disk:
       name: parkar-storage
       mountPath: /opt/render/project/src/storage
