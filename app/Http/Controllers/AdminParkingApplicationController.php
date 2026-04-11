@@ -6,6 +6,7 @@ use App\Models\AuditLog;
 use App\Models\Document;
 use App\Models\ParkingApplication;
 use App\Models\ParkingTicket;
+use App\Support\NotificationPublisher;
 use DateTimeInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -145,6 +146,16 @@ class AdminParkingApplicationController extends Controller
                 'message' => 'Failed to update application review status.',
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
+
+        NotificationPublisher::createForUser(
+            (int) $updated->user_id,
+            $updated->status === 'approved' ? 'Application approved' : 'Application rejected',
+            $updated->status === 'approved'
+                ? "Your parking application #{$updated->id} has been approved."
+                    . ($updated->parkingTicket?->ticket_id ? " Ticket ID: {$updated->parkingTicket->ticket_id}." : '')
+                : "Your parking application #{$updated->id} was rejected."
+                    . ($updated->admin_comment ? " Reason: {$updated->admin_comment}" : '')
+        );
 
         return response()->json([
             'message' => $updated->status === 'approved'

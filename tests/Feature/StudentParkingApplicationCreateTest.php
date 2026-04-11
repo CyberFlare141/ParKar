@@ -47,6 +47,14 @@ class StudentParkingApplicationCreateTest extends TestCase
             'is_active' => true,
         ]);
 
+        $admin = User::query()->create([
+            'name' => 'Admin User',
+            'email' => 'admin.parkar@aust.edu',
+            'password' => 'hashed-password',
+            'role' => 'admin',
+            'is_active' => true,
+        ]);
+
         $semester = Semester::query()->create([
             'name' => 'Spring 2026',
             'start_date' => '2026-01-01',
@@ -65,7 +73,7 @@ class StudentParkingApplicationCreateTest extends TestCase
             ->post('/api/student/parking-applications', [
                 'name' => 'John Alex',
                 'aust_id' => 'AUST-123',
-                'semester_id' => $semester->id,
+                'study_semester' => '3.2',
                 'email' => 'john.alex.123@aust.edu',
                 'contact_phone' => '01700000000',
                 'vehicle_plate' => 'dhaka-123',
@@ -118,11 +126,20 @@ class StudentParkingApplicationCreateTest extends TestCase
             'status' => 'pending',
             'applicant_name' => 'John Alex',
             'applicant_university_id' => 'AUST-123',
+            'notes' => "Study Semester: 3.2\nNotes: Need campus parking.",
             'nda_signed' => true,
         ]);
 
         $this->assertDatabaseCount('documents', 4);
         $this->assertDatabaseCount('application_documents', 4);
         $this->assertDatabaseCount('ai_analysis', 1);
+        $this->assertDatabaseHas('notifications', [
+            'user_id' => $student->id,
+            'title' => 'Application submitted',
+        ]);
+        $this->assertDatabaseHas('notifications', [
+            'user_id' => $admin->id,
+            'title' => 'New parking application',
+        ]);
     }
 }

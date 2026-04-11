@@ -8,6 +8,8 @@ export const ENDPOINTS = {
   ME: "/auth/me",
   PROFILE: "/auth/me",
   LOGOUT: "/auth/logout",
+  NOTIFICATIONS: "/notifications",
+  NOTIFICATION_READ: (notificationId) => `/notifications/${notificationId}/read`,
   CONTACT: "/contact",
   ITEMS: "/items",
   ADMIN_DASHBOARD: "/admin/dashboard",

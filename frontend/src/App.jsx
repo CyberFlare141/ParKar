@@ -37,9 +37,12 @@ import Reports from "./pages/Admin/Reports";
 import AuditLogs from "./pages/Admin/AuditLogs";
 import BackButtonLayout from "./components/BackButtonLayout";
 import GoogleAuthCallbackHandler from "./components/GoogleAuthCallbackHandler";
+import NotificationPopup from "./components/NotificationPopup";
 
 function App() {
   return (
+    <>
+      <NotificationPopup />
       <Routes>
         {/* Landing */}
         <Route path="/" element={<Landing />} />
@@ -217,6 +220,7 @@ function App() {
         {/* 404 */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
+    </>
   );
 }
 

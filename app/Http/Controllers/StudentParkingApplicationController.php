@@ -9,6 +9,7 @@ use App\Models\Document;
 use App\Models\ParkingApplication;
 use App\Models\Semester;
 use App\Models\Vehicle;
+use App\Support\NotificationPublisher;
 use DateTimeInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,6 +20,19 @@ use Throwable;
 
 class StudentParkingApplicationController extends Controller
 {
+    private const STUDY_SEMESTERS = [
+        '1.1',
+        '1.2',
+        '2.1',
+        '2.2',
+        '3.1',
+        '3.2',
+        '4.1',
+        '4.2',
+        '5.1',
+        '5.2',
+    ];
+
     private const DOCUMENT_FIELD_TO_TYPE = [
         'vehicle_registration_certificate' => 'registration',
         'driving_license' => 'license',
@@ -160,7 +174,7 @@ class StudentParkingApplicationController extends Controller
         $payload = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'aust_id' => ['required', 'string', 'max:50'],
-            'semester_id' => ['required', 'integer', 'exists:semesters,id'],
+            'study_semester' => ['required', 'in:' . implode(',', self::STUDY_SEMESTERS)],
             'email' => ['required', 'email:rfc', 'max:255'],
             'contact_phone' => ['required', 'string', 'max:20'],
             'vehicle_plate' => ['required', 'string', 'max:20'],
@@ -200,6 +214,7 @@ class StudentParkingApplicationController extends Controller
 
         /** @var \App\Models\User $user */
         $user = $request->user();
+        $semester = $this->resolveSubmissionSemester();
 
         $aiResultsByField = [];
         $rejections = [];
@@ -278,7 +293,7 @@ class StudentParkingApplicationController extends Controller
 
             $application = ParkingApplication::query()->create([
                 'user_id' => $user->id,
-                'semester_id' => $payload['semester_id'],
+                'semester_id' => $semester->id,
                 'vehicle_id' => $vehicle->id,
                 'status' => 'pending',
                 'register_as' => (string) $user->role,
@@ -286,7 +301,7 @@ class StudentParkingApplicationController extends Controller
                 'applicant_university_id' => trim((string) $payload['aust_id']),
                 'applicant_email' => strtolower(trim((string) $payload['email'])),
                 'applicant_phone' => trim((string) $payload['contact_phone']),
-                'notes' => isset($payload['notes']) ? trim((string) $payload['notes']) : null,
+                'notes' => $this->buildStoredNotes($payload),
                 'nda_signed' => (bool) $payload['nda_signed'],
             ]);
 
@@ -312,6 +327,16 @@ class StudentParkingApplicationController extends Controller
             DB::commit();
 
             $this->storeAiAnalysis($application->id, $aiResultsByField);
+            NotificationPublisher::createForUser(
+                $user->id,
+                'Application submitted',
+                "Your parking application #{$application->id} has been submitted and is now pending review."
+            );
+            NotificationPublisher::createForRole(
+                'admin',
+                'New parking application',
+                "{$user->name} submitted parking application #{$application->id} for review."
+            );
 
             return response()->json([
                 'message' => 'Parking application submitted successfully.',
@@ -395,6 +420,43 @@ class StudentParkingApplicationController extends Controller
         });
 
         return round($totalRisk / count($resultsByField), 4);
+    }
+
+    private function buildStoredNotes(array $payload): ?string
+    {
+        $parts = [
+            'Study Semester: ' . trim((string) $payload['study_semester']),
+        ];
+
+        $notes = isset($payload['notes']) ? trim((string) $payload['notes']) : '';
+        if ($notes !== '') {
+            $parts[] = 'Notes: ' . $notes;
+        }
+
+        return implode(PHP_EOL, $parts);
+    }
+
+    private function resolveSubmissionSemester(): Semester
+    {
+        $semester = Semester::query()
+            ->orderByDesc('is_active')
+            ->orderByDesc('start_date')
+            ->first();
+
+        if ($semester) {
+            return $semester;
+        }
+
+        $year = (int) now()->format('Y');
+
+        return Semester::query()->create([
+            'name' => "Auto Semester {$year}",
+            'start_date' => "{$year}-01-01",
+            'end_date' => "{$year}-12-31",
+            'vehicle_quota' => 1,
+            'semester_fee' => 0,
+            'is_active' => true,
+        ]);
     }
 
     private function toStudentApplicationSummary(ParkingApplication $application): array
