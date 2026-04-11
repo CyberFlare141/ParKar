@@ -9,9 +9,8 @@ php artisan view:cache
 echo "==> Creating storage symlink..."
 php artisan storage:link || true
  
-echo "==> Running database setup..."
-# This project uses a database-first PostgreSQL schema.
-# Import schema.sql into a new Render PostgreSQL database before first use.
+echo "==> Running database migrations..."
+php artisan migrate --force
  
 echo "==> Starting PHP-FPM and Nginx via Supervisor..."
-exec /usr/bin/supervisord -c /etc/supervisor/supervisord.conf
+exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf

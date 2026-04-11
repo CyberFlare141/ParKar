@@ -19,7 +19,10 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['*'],
+    'allowed_origins' => [
+    'https://par-kar.vercel.app', 
+    'http://localhost:5173' // keep this for local testing
+],
 
     'allowed_origins_patterns' => [],
 
