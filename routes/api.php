@@ -62,6 +62,9 @@ Route::prefix('teacher')->middleware(['jwt.auth', 'role.teacher'])->group(functi
             'user' => $request->user()?->only(['id', 'name', 'email', 'role']),
         ]);
     });
+    Route::get('/dashboard/summary', [StudentParkingApplicationController::class, 'dashboard']);
+    Route::post('/parking-applications', [StudentParkingApplicationController::class, 'store']);
+    Route::post('/parking-applications/{parkingApplication}/renew', [StudentParkingApplicationController::class, 'renew']);
 });
 
 Route::prefix('student')->middleware(['jwt.auth', 'role.student'])->group(function () {
@@ -74,4 +77,5 @@ Route::prefix('student')->middleware(['jwt.auth', 'role.student'])->group(functi
     Route::get('/dashboard/summary', [StudentParkingApplicationController::class, 'dashboard']);
     Route::get('/semesters', [StudentParkingApplicationController::class, 'semesters']);
     Route::post('/parking-applications', [StudentParkingApplicationController::class, 'store']);
+    Route::post('/parking-applications/{parkingApplication}/renew', [StudentParkingApplicationController::class, 'renew']);
 });

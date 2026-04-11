@@ -24,4 +24,10 @@ export const ENDPOINTS = {
   STUDENT_SEMESTERS: "/student/semesters",
   STUDENT_DASHBOARD: "/student/dashboard/summary",
   STUDENT_PARKING_APPLICATIONS: "/student/parking-applications",
+  STUDENT_RENEW_PARKING_APPLICATION: (applicationId) =>
+    `/student/parking-applications/${applicationId}/renew`,
+  TEACHER_DASHBOARD: "/teacher/dashboard/summary",
+  TEACHER_PARKING_APPLICATIONS: "/teacher/parking-applications",
+  TEACHER_RENEW_PARKING_APPLICATION: (applicationId) =>
+    `/teacher/parking-applications/${applicationId}/renew`,
 };
