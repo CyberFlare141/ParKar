@@ -9,7 +9,6 @@ import {
   getRenewalAlertClass,
   getRenewalBadgeClass,
   getRenewalMeta,
-  getUserRenewalHistoryEntries,
 } from "./renewalUtils";
 import "./ApplicationHistory.css";
 
@@ -107,10 +106,6 @@ export default function ApplicationHistory() {
 
   const applications = useMemo(() => history?.application_history || [], [history]);
   const student = history?.student || {};
-  const renewalApplications = useMemo(
-    () => getUserRenewalHistoryEntries(student?.id, applications),
-    [applications, student?.id],
-  );
   const combinedApplications = useMemo(
     () => getCombinedStudentApplications(student?.id, applications),
     [applications, student?.id],

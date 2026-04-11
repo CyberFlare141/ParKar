@@ -5,7 +5,7 @@ export default function useClientPagination(items, { pageSize = 5, resetKeys = [
     currentPage: 1,
     resetSignature: JSON.stringify(resetKeys),
   }));
-  const safeItems = Array.isArray(items) ? items : [];
+  const safeItems = useMemo(() => (Array.isArray(items) ? items : []), [items]);
   const totalItems = safeItems.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const resetSignature = JSON.stringify(resetKeys);
