@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import client from "../api/client";
 import { ENDPOINTS } from "../api/endpoints";
 import { getAuthUser } from "../auth/session";
-import PaginationControls, { useClientPagination } from "../components/PaginationControls";
+import PaginationControls from "../components/PaginationControls";
+import useClientPagination from "../components/useClientPagination";
 import { getCombinedStudentApplications, getRenewalMeta } from "./Student/renewalUtils";
 import "./notifications.css";
 

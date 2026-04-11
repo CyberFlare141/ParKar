@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import client from "../../api/client";
 import { ENDPOINTS } from "../../api/endpoints";
-import PaginationControls, { useClientPagination } from "../../components/PaginationControls";
+import PaginationControls from "../../components/PaginationControls";
+import useClientPagination from "../../components/useClientPagination";
 import {
   getCombinedStudentApplications,
   getRenewalAlertClass,

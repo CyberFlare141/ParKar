@@ -3,7 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import client from "../../api/client";
 import { ENDPOINTS } from "../../api/endpoints";
 import { clearAuthSession, getAuthUser } from "../../auth/session";
-import PaginationControls, { useClientPagination } from "../../components/PaginationControls";
+import PaginationControls from "../../components/PaginationControls";
+import useClientPagination from "../../components/useClientPagination";
 import {
   getCombinedStudentApplications,
   getRenewalAlertClass,

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import client from "../../api/client";
 import { ENDPOINTS } from "../../api/endpoints";
-import PaginationControls, { useClientPagination } from "../../components/PaginationControls";
+import PaginationControls from "../../components/PaginationControls";
+import useClientPagination from "../../components/useClientPagination";
 import "./ReviewApplications.css";
 
 const STATUS_OPTIONS = ["all", "pending", "approved", "rejected", "renewal"];

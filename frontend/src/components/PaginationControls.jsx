@@ -1,5 +1,3 @@
-import { useEffect, useMemo, useState } from "react";
-
 function buildPageItems(currentPage, totalPages) {
   if (totalPages <= 5) {
     return Array.from({ length: totalPages }, (_, index) => index + 1);
@@ -35,36 +33,6 @@ function buildPageItems(currentPage, totalPages) {
   });
 
   return items;
-}
-
-export function useClientPagination(items, { pageSize = 5, resetKeys = [] } = {}) {
-  const [currentPage, setCurrentPage] = useState(1);
-  const safeItems = Array.isArray(items) ? items : [];
-  const totalItems = safeItems.length;
-  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
-  const resetSignature = JSON.stringify(resetKeys);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [resetSignature]);
-
-  useEffect(() => {
-    setCurrentPage((page) => Math.min(page, totalPages));
-  }, [totalPages]);
-
-  const paginatedItems = useMemo(() => {
-    const startIndex = (currentPage - 1) * pageSize;
-    return safeItems.slice(startIndex, startIndex + pageSize);
-  }, [currentPage, pageSize, safeItems]);
-
-  return {
-    currentPage,
-    pageSize,
-    paginatedItems,
-    setCurrentPage,
-    totalItems,
-    totalPages,
-  };
 }
 
 export default function PaginationControls({

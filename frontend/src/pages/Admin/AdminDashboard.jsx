@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import client from "../../api/client";
 import { ENDPOINTS } from "../../api/endpoints";
-import PaginationControls, { useClientPagination } from "../../components/PaginationControls";
+import PaginationControls from "../../components/PaginationControls";
+import useClientPagination from "../../components/useClientPagination";
 import "./AdminDashboard.css";
 
 const AUTO_REFRESH_INTERVAL_MS = 10000;
