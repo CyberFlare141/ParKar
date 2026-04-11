@@ -1,11 +1,25 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
-import client from "../../api/client";
+import client, { resolveBaseUrl } from "../../api/client";
 import { ENDPOINTS } from "../../api/endpoints";
 import { setAuthSession } from "../../auth/session";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function buildGoogleRedirectUrl() {
+  return `${resolveBaseUrl().replace(/\/$/, "")}${ENDPOINTS.GOOGLE_REDIRECT}`;
+}
+
+function parseGoogleCallbackUser(rawUser) {
+  if (!rawUser) return null;
+
+  try {
+    return JSON.parse(rawUser);
+  } catch {
+    return null;
+  }
+}
 
 const initialValues = {
   id: "",
@@ -25,6 +39,25 @@ export default function Register() {
   const [challengeId, setChallengeId] = useState("");
   const [feedback, setFeedback] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const googleRedirectUrl = useMemo(buildGoogleRedirectUrl, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
+    const user = parseGoogleCallbackUser(params.get("user"));
+    const error = params.get("error");
+
+    if (token && user) {
+      setAuthSession(token, user);
+      window.location.replace("/");
+      return;
+    }
+
+    if (error === "access_denied") {
+      setFeedback("Google sign-in was cancelled.");
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [navigate]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -300,6 +333,38 @@ export default function Register() {
                 className="w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {isSubmitting ? "Submitting..." : "Sign Up"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => window.location.assign(googleRedirectUrl)}
+                disabled={isSubmitting}
+                className="flex w-full items-center justify-center gap-3 rounded-xl border border-[#dadce0] bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
+                style={{ fontFamily: '"Google Sans", "Segoe UI", sans-serif' }}
+              >
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  className="h-5 w-5"
+                >
+                  <path
+                    fill="#4285F4"
+                    d="M23.49 12.27c0-.79-.07-1.54-.2-2.27H12v4.29h6.44a5.51 5.51 0 0 1-2.39 3.62v3.01h3.87c2.27-2.09 3.57-5.16 3.57-8.65Z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 24c3.24 0 5.96-1.07 7.95-2.91l-3.87-3.01c-1.07.72-2.44 1.15-4.08 1.15-3.13 0-5.78-2.11-6.72-4.96H1.28v3.1A12 12 0 0 0 12 24Z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.28 14.27A7.2 7.2 0 0 1 4.91 12c0-.79.14-1.56.37-2.27v-3.1H1.28A12 12 0 0 0 0 12c0 1.94.46 3.77 1.28 5.37l4-3.1Z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M12 4.77c1.77 0 3.35.61 4.59 1.8l3.44-3.44C17.95 1.09 15.23 0 12 0A12 12 0 0 0 1.28 6.63l4 3.1c.94-2.85 3.59-4.96 6.72-4.96Z"
+                  />
+                </svg>
+                Sign Up with Google
               </button>
             </form>
           ) : (
