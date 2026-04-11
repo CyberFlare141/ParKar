@@ -186,3 +186,8 @@ POST   /api/admin/reject/{id}
 PostgreSQL imports `schema.sql` automatically on first startup of a fresh `postgres_data` volume. This replaces the old migration/seeder flow.
 Do not run Laravel migrations for local setup; keep schema changes in `schema.sql`.
 If you are switching from an older MySQL-based Docker setup, recreate the database with `docker compose down -v` before bringing the stack back up.
+
+## Railway Backend Deploy
+
+Railway deployment notes for the Laravel backend are in [`RAILWAY_DEPLOY.md`](./RAILWAY_DEPLOY.md).
+The repo now includes a Railway `railway.json` file plus a pre-deploy schema bootstrap for brand-new PostgreSQL databases.

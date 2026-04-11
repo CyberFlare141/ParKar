@@ -5,6 +5,7 @@ ENV COMPOSER_ALLOW_SUPERUSER=1
 RUN apt-get update && apt-get install -y \
     git \
     curl \
+    postgresql-client \
     zip \
     unzip \
     libpng-dev \
@@ -25,8 +26,9 @@ RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoload
     && chown -R www-data:www-data storage bootstrap/cache
 
 COPY docker/render/entrypoint.sh /usr/local/bin/render-entrypoint
+COPY docker/railway/predeploy.sh /usr/local/bin/railway-predeploy
 
-RUN chmod +x /usr/local/bin/render-entrypoint
+RUN chmod +x /usr/local/bin/render-entrypoint /usr/local/bin/railway-predeploy
 
 EXPOSE 10000
 

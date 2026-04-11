@@ -253,22 +253,6 @@ export default function RenewApplication() {
       return;
     }
 
-    const changedDocuments = Object.entries(replaceFiles)
-      .filter(([, file]) => Boolean(file))
-      .map(([key, file]) => ({
-        key,
-        label: formatLabel(key),
-        name: file.name,
-      }));
-
-    const addedDocuments = Object.entries(addFiles)
-      .filter(([, file]) => Boolean(file))
-      .map(([key, file]) => ({
-        key,
-        label: formatLabel(key),
-        name: file.name,
-      }));
-
     try {
       setIsSubmitting(true);
       setError("");

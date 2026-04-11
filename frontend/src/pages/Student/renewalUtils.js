@@ -1,5 +1,31 @@
 const VALIDITY_MONTHS = 6;
 const EXPIRY_WARNING_DAYS = 14;
+const RENEWAL_STORAGE_PREFIX = "parkar:renewals:";
+
+function getRenewalStorageKey(userId) {
+  return `${RENEWAL_STORAGE_PREFIX}${userId}`;
+}
+
+function readRenewalStore(userId) {
+  if (!userId || typeof localStorage === "undefined") {
+    return {};
+  }
+
+  try {
+    const rawValue = localStorage.getItem(getRenewalStorageKey(userId));
+    return rawValue ? JSON.parse(rawValue) : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeRenewalStore(userId, value) {
+  if (!userId || typeof localStorage === "undefined") {
+    return;
+  }
+
+  localStorage.setItem(getRenewalStorageKey(userId), JSON.stringify(value));
+}
 
 function safeDate(value) {
   const date = new Date(value);
@@ -33,9 +59,20 @@ export function getApplicationReferenceDate(application) {
   );
 }
 
-export function getRenewalRecord(_userId, application) {
+export function getRenewalRecord(userId, application) {
   if (!application) {
     return null;
+  }
+
+  const storedRecords = readRenewalStore(userId);
+  const storedRecord =
+    storedRecords[String(application?.id)] ||
+    (application?.renewal_source_application_id
+      ? storedRecords[String(application.renewal_source_application_id)]
+      : null);
+
+  if (storedRecord) {
+    return storedRecord;
   }
 
   return {
@@ -55,8 +92,38 @@ export function getRenewalRecord(_userId, application) {
   };
 }
 
-export function saveRenewalRecord() {
-  return null;
+export function saveRenewalRecord(userId, application, payload = {}) {
+  if (!userId || !application?.id) {
+    return null;
+  }
+
+  const storedRecords = readRenewalStore(userId);
+  const sourceApplicationId = Number(
+    application?.renewal_source_application_id || application?.id,
+  );
+  const previousRecord = storedRecords[String(sourceApplicationId)] || {
+    renewal_count: Number(application?.renewal_count || 0),
+    current: null,
+    history: [],
+  };
+
+  const nextRecord = {
+    renewal_count: Number(previousRecord.renewal_count || 0) + 1,
+    current: {
+      submitted_at: new Date().toISOString(),
+      request_status: "pending",
+      source_application_id: sourceApplicationId,
+      document_mode: payload?.documentMode || "keep",
+      kept_document_ids: Array.isArray(payload?.keptDocumentIds) ? payload.keptDocumentIds : [],
+      acknowledgement: Boolean(payload?.acknowledgement),
+    },
+    history: Array.isArray(previousRecord.history) ? previousRecord.history : [],
+  };
+
+  storedRecords[String(sourceApplicationId)] = nextRecord;
+  writeRenewalStore(userId, storedRecords);
+
+  return nextRecord;
 }
 
 export function getUserRenewalHistoryEntries(_userId, applications = []) {
@@ -69,8 +136,33 @@ export function getUserRenewalHistoryEntries(_userId, applications = []) {
     });
 }
 
-export function getCombinedStudentApplications(_userId, applications = []) {
-  return [...applications].sort((left, right) => {
+export function getCombinedStudentApplications(userId, applications = []) {
+  const storedRecords = readRenewalStore(userId);
+  const combinedApplications = [...applications];
+
+  applications.forEach((application) => {
+    if (!application?.id) {
+      return;
+    }
+
+    const storedRecord = storedRecords[String(application.id)];
+    if (!storedRecord?.current) {
+      return;
+    }
+
+    combinedApplications.push({
+      ...application,
+      id: `${application.id}-renewal-${storedRecord.renewal_count}`,
+      is_renewal: true,
+      renewal_source_application_id: storedRecord.current.source_application_id || application.id,
+      renewal_count: storedRecord.renewal_count,
+      status: storedRecord.current.request_status || "pending",
+      created_at: storedRecord.current.submitted_at || application.created_at,
+      last_renewed_at: storedRecord.current.submitted_at || null,
+    });
+  });
+
+  return combinedApplications.sort((left, right) => {
     const leftTime = new Date(left?.created_at || 0).getTime();
     const rightTime = new Date(right?.created_at || 0).getTime();
     return rightTime - leftTime;

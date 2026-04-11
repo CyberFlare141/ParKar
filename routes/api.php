@@ -10,8 +10,6 @@ use App\Http\Controllers\StudentParkingApplicationController;
 use App\Http\Controllers\UsersController;
 use Illuminate\Http\Request;
 
-Route::get('/health', fn () => response()->json(['status' => 'API working']));
-
 Route::prefix('auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);

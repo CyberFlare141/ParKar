@@ -11,7 +11,7 @@ class HealthCheckTest extends TestCase
         $this->getJson('/api/health')
             ->assertOk()
             ->assertExactJson([
-                'status' => 'API working',
+                'status' => 'ok',
             ]);
     }
 }

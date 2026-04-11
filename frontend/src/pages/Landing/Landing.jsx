@@ -1252,9 +1252,6 @@ export default function Landing() {
 
   useEffect(() => {
     if (!authToken || !authUser?.id) {
-      setLatestNotifications([]);
-      setUnreadNotifications(0);
-      setNotificationMenuOpen(false);
       return undefined;
     }
 
@@ -1294,6 +1291,9 @@ export default function Landing() {
       window.removeEventListener("auth-session-changed", handleSessionChange);
     };
   }, [authToken, authUser?.id]);
+
+  const visibleNotifications = authToken && authUser?.id ? latestNotifications : [];
+  const visibleUnreadNotifications = authToken && authUser?.id ? unreadNotifications : 0;
 
   useEffect(() => {
     const handleOutsideClick = (event) => {
@@ -1353,8 +1353,8 @@ export default function Landing() {
                     />
                   </svg>
                 </span>
-                {unreadNotifications > 0 ? (
-                  <span className="pk-notif-badge">{unreadNotifications}</span>
+                {visibleUnreadNotifications > 0 ? (
+                  <span className="pk-notif-badge">{visibleUnreadNotifications}</span>
                 ) : null}
               </button>
 
@@ -1367,16 +1367,16 @@ export default function Landing() {
                   <div>
                     <p className="pk-notif-menu-title">Latest notifications</p>
                     <p className="pk-notif-menu-meta">
-                      {unreadNotifications > 0
-                        ? `${unreadNotifications} unread`
+                      {visibleUnreadNotifications > 0
+                        ? `${visibleUnreadNotifications} unread`
                         : "All caught up"}
                     </p>
                   </div>
                 </div>
 
                 <div className="pk-notif-list">
-                  {latestNotifications.length ? (
-                    latestNotifications.map((item) => (
+                  {visibleNotifications.length ? (
+                    visibleNotifications.map((item) => (
                       <div
                         key={item.id}
                         className={`pk-notif-item${item.is_read ? "" : " unread"}`}
