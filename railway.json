@@ -4,7 +4,7 @@
     "builder": "DOCKERFILE"
   },
   "deploy": {
-    "healthcheckPath": "/api/health",
+    "healthcheckPath": "/",
     "healthcheckTimeout": 120,
     "preDeployCommand": "/usr/local/bin/railway-predeploy",
     "restartPolicyType": "ON_FAILURE",

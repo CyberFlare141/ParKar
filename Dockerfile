@@ -2,6 +2,7 @@ FROM php:8.2-cli
 
 ENV COMPOSER_ALLOW_SUPERUSER=1
 
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     git \
     curl \
@@ -16,20 +17,25 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-install pdo_mysql pdo_pgsql mbstring exif bcmath gd zip \
     && rm -rf /var/lib/apt/lists/*
 
+# Install composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-WORKDIR /opt/render/project/src
+# Set working directory
+WORKDIR /app
 
+# Copy project
 COPY . .
 
+# Install dependencies
 RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader \
     && chown -R www-data:www-data storage bootstrap/cache
 
-COPY docker/render/entrypoint.sh /usr/local/bin/render-entrypoint
+# Copy Railway predeploy script
 COPY docker/railway/predeploy.sh /usr/local/bin/railway-predeploy
+RUN chmod +x /usr/local/bin/railway-predeploy
 
-RUN chmod +x /usr/local/bin/render-entrypoint /usr/local/bin/railway-predeploy
+# Expose Railway port
+EXPOSE 8080
 
-EXPOSE 10000
-
-CMD ["render-entrypoint"]
+# Run predeploy + start Laravel
+CMD /usr/local/bin/railway-predeploy && php artisan serve --host=0.0.0.0 --port=${PORT:-8080}
