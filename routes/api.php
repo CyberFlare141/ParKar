@@ -5,6 +5,7 @@ use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AdminParkingApplicationController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\StudentParkingApplicationController;
 use App\Http\Controllers\UsersController;
 use Illuminate\Http\Request;
@@ -36,6 +37,8 @@ Route::middleware('jwt.auth')->group(function () {
     Route::put('/items/{id}', [UsersController::class, 'update']);
     Route::patch('/items/{id}', [UsersController::class, 'patch']);
     Route::delete('/items/{id}', [UsersController::class, 'destroy']);
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markRead']);
 });
 
 Route::prefix('admin')->middleware(['jwt.auth', 'role.admin'])->group(function () {

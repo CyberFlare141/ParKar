@@ -65,10 +65,17 @@ class AuthRegisterTest extends TestCase
             'channel' => 'email',
             'attempts' => 0,
         ]);
+
+        $this->assertDatabaseHas('notifications', [
+            'user_id' => $userId,
+            'title' => 'Welcome to ParKar',
+            'is_read' => false,
+        ]);
     }
 
     private function createAuthTables(): void
     {
+        Schema::dropIfExists('notifications');
         Schema::dropIfExists('auth_otps');
         Schema::dropIfExists('users');
 
@@ -106,6 +113,15 @@ class AuthRegisterTest extends TestCase
             $table->timestamp('last_attempt_at')->nullable();
             $table->json('meta')->nullable();
             $table->timestamps();
+        });
+
+        Schema::create('notifications', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('user_id');
+            $table->string('title');
+            $table->text('message');
+            $table->boolean('is_read')->default(false);
+            $table->timestamp('created_at')->nullable();
         });
     }
 }

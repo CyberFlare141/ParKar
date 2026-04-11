@@ -10,6 +10,7 @@ use App\Http\Services\Auth\RoleDetectionService;
 use App\Models\AuthOtp;
 use App\Models\User;
 use App\Support\AdminPresence;
+use App\Support\NotificationPublisher;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -78,6 +79,12 @@ class AuthController extends Controller
             $user,
             'register',
             $payload['otp_channel'] ?? 'email'
+        );
+
+        NotificationPublisher::createForUser(
+            $user->id,
+            'Welcome to ParKar',
+            'Your account has been created. Verify the OTP to activate access to the parking portal.'
         );
 
         return response()->json([
@@ -201,6 +208,12 @@ class AuthController extends Controller
 
         $this->syncUserRoleFromEmail($user);
         $token = $this->jwtService->issueToken($user);
+
+        NotificationPublisher::createForUser(
+            $user->id,
+            'Login successful',
+            'You are signed in and can now access your parking dashboard.'
+        );
 
         RateLimiter::clear($throttleKey);
 

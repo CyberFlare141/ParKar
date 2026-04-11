@@ -1,5 +1,5 @@
 import "./ApplyParking.css";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import client from "../../api/client";
 import { ENDPOINTS } from "../../api/endpoints";
@@ -32,10 +32,14 @@ const uploadItems = [
   },
 ];
 
+const studySemesterOptions = Array.from({ length: 5 }, (_, yearIndex) =>
+  [1, 2].map((term) => `${yearIndex + 1}.${term}`),
+).flat();
+
 const initialValues = {
   name: "",
   aust_id: "",
-  semester_id: "",
+  study_semester: "",
   email: "",
   contact_phone: "",
   vehicle_plate: "",
@@ -106,29 +110,6 @@ function buildAiModalState(aiVerification, fallbackTitle, fallbackMessage) {
   };
 }
 
-function formatSemesterLabel(semester) {
-  const name = String(
-    semester?.name ||
-      semester?.title ||
-      semester?.semester_name ||
-      semester?.label ||
-      "",
-  ).trim();
-
-  if (name) {
-    return name;
-  }
-
-  const startDate = String(semester?.start_date || "").trim();
-  const endDate = String(semester?.end_date || "").trim();
-
-  if (startDate && endDate) {
-    return `${startDate} - ${endDate}`;
-  }
-
-  return `Semester ${semester?.id ?? ""}`.trim();
-}
-
 export default function ApplyParking() {
   const [values, setValues] = useState(() => {
     const user = getAuthUser();
@@ -143,10 +124,8 @@ export default function ApplyParking() {
   const [documents, setDocuments] = useState({});
   const [errors, setErrors] = useState({});
   const [feedback, setFeedback] = useState("");
-  const [semesters, setSemesters] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [hasAvailableSemesters, setHasAvailableSemesters] = useState(true);
   const [aiModal, setAiModal] = useState({
     open: false,
     tone: "info",
@@ -162,37 +141,20 @@ export default function ApplyParking() {
       try {
         setIsLoading(true);
 
-        const [profileResponse, semesterResponse] = await Promise.all([
-          client.get(ENDPOINTS.ME, { skipAuthRedirect: true }),
-          client.get(ENDPOINTS.STUDENT_SEMESTERS, { skipAuthRedirect: true }),
-        ]);
+        const profileResponse = await client.get(ENDPOINTS.ME, { skipAuthRedirect: true });
 
         if (!isMounted) {
           return;
         }
 
         const user = profileResponse?.data?.user || {};
-        const nextSemesters = semesterResponse?.data?.data || [];
-        const hasSemesters = nextSemesters.length > 0;
-
-        setHasAvailableSemesters(hasSemesters);
-        setSemesters(nextSemesters);
         setValues((prev) => ({
           ...prev,
           name: user?.name || "",
           aust_id: user?.university_id || "",
           email: user?.email || "",
           contact_phone: user?.phone || "",
-          semester_id: hasSemesters && nextSemesters[0]?.id
-            ? String(nextSemesters[0].id)
-            : "",
         }));
-
-        if (!hasSemesters) {
-          setFeedback(
-            "No active semesters are available yet. Add one in the database first.",
-          );
-        }
       } catch (error) {
         if (!isMounted) {
           return;
@@ -203,7 +165,7 @@ export default function ApplyParking() {
           status === 401
             ? "Session could not be verified right now. Please login again if this continues."
             : error?.response?.data?.message ||
-              "Failed to load profile and semester data.";
+              "Failed to load profile data.";
         setFeedback(message);
 
         // Keep the form usable with cached profile when API auth verification fails.
@@ -217,13 +179,6 @@ export default function ApplyParking() {
             contact_phone: cachedUser?.phone || prev.contact_phone,
           }));
         }
-
-        setHasAvailableSemesters(false);
-        setSemesters([]);
-        setValues((prev) => ({
-          ...prev,
-          semester_id: "",
-        }));
       } finally {
         if (isMounted) {
           setIsLoading(false);
@@ -237,15 +192,6 @@ export default function ApplyParking() {
       isMounted = false;
     };
   }, []);
-
-  const semesterOptions = useMemo(
-    () =>
-      semesters.map((semester) => ({
-        value: String(semester.id),
-        label: formatSemesterLabel(semester),
-      })),
-    [semesters],
-  );
 
   const handleChange = (event) => {
     const { name, value, type, checked } = event.target;
@@ -279,7 +225,7 @@ export default function ApplyParking() {
     [
       "name",
       "aust_id",
-      "semester_id",
+      "study_semester",
       "email",
       "contact_phone",
       "vehicle_plate",
@@ -332,17 +278,6 @@ export default function ApplyParking() {
       return;
     }
 
-    if (!hasAvailableSemesters) {
-      setErrors((prev) => ({
-        ...prev,
-        semester_id: "No valid semester is available right now.",
-      }));
-      setFeedback(
-        "No active semester exists in the database yet. Please create one before submitting.",
-      );
-      return;
-    }
-
     const formData = new FormData();
     Object.entries(values).forEach(([key, value]) => {
       if (key === "nda_signed") {
@@ -389,9 +324,9 @@ export default function ApplyParking() {
         ...initialValues,
         name: prev.name,
         aust_id: prev.aust_id,
+        study_semester: "",
         email: prev.email,
         contact_phone: prev.contact_phone,
-        semester_id: prev.semester_id,
       }));
     } catch (error) {
       const responseErrors = error?.response?.data?.errors || {};
@@ -420,7 +355,7 @@ export default function ApplyParking() {
         }
       });
 
-      setErrors((prev) => ({ ...prev, ...nextErrors }));
+      setErrors(nextErrors);
       if (error?.response?.status === 413) {
         setFeedback("Upload is too large. Please use smaller files (total under 25MB).");
         return;
@@ -470,7 +405,7 @@ export default function ApplyParking() {
                     value={values.name}
                     onChange={handleChange}
                     placeholder="Enter name"
-                    disabled
+                    readOnly
                   />
                   {errors.name ? <p className="field-error">{errors.name}</p> : null}
                 </label>
@@ -483,28 +418,28 @@ export default function ApplyParking() {
                     value={values.aust_id}
                     onChange={handleChange}
                     placeholder="Enter AUST ID"
-                    disabled
+                    disabled={isLoading || isSubmitting}
                   />
                   {errors.aust_id ? <p className="field-error">{errors.aust_id}</p> : null}
                 </label>
 
                 <label className="field">
-                  <span>Semester</span>
+                  <span>Study Semester</span>
                   <select
-                    name="semester_id"
-                    value={values.semester_id}
+                    name="study_semester"
+                    value={values.study_semester}
                     onChange={handleChange}
-                    disabled={isLoading || isSubmitting || !hasAvailableSemesters}
+                    disabled={isLoading || isSubmitting}
                   >
-                    <option value="">Select semester</option>
-                    {semesterOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
+                    <option value="">Select study semester</option>
+                    {studySemesterOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
                       </option>
                     ))}
                   </select>
-                  {errors.semester_id ? (
-                    <p className="field-error">{errors.semester_id}</p>
+                  {errors.study_semester ? (
+                    <p className="field-error">{errors.study_semester}</p>
                   ) : null}
                 </label>
 
@@ -516,7 +451,7 @@ export default function ApplyParking() {
                     value={values.email}
                     onChange={handleChange}
                     placeholder="Enter email"
-                    disabled
+                    readOnly
                   />
                   {errors.email ? <p className="field-error">{errors.email}</p> : null}
                 </label>
@@ -529,7 +464,7 @@ export default function ApplyParking() {
                     value={values.contact_phone}
                     onChange={handleChange}
                     placeholder="Enter contact phone"
-                    disabled
+                    disabled={isLoading || isSubmitting}
                   />
                   {errors.contact_phone ? (
                     <p className="field-error">{errors.contact_phone}</p>

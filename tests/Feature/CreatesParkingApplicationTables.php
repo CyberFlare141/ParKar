@@ -20,6 +20,8 @@ trait CreatesParkingApplicationTables
 
     private function createParkingApplicationTables(): void
     {
+        Schema::dropIfExists('notifications');
+        Schema::dropIfExists('audit_logs');
         Schema::dropIfExists('ai_analysis');
         Schema::dropIfExists('application_documents');
         Schema::dropIfExists('documents');
@@ -118,6 +120,24 @@ trait CreatesParkingApplicationTables
             $table->double('risk_score')->nullable();
             $table->json('raw_response')->nullable();
             $table->timestamps();
+        });
+
+        Schema::create('notifications', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('user_id');
+            $table->string('title');
+            $table->text('message');
+            $table->boolean('is_read')->default(false);
+            $table->timestamp('created_at')->nullable();
+        });
+
+        Schema::create('audit_logs', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('admin_id');
+            $table->foreignId('application_id');
+            $table->string('action');
+            $table->text('reason')->nullable();
+            $table->timestamp('created_at')->nullable();
         });
 
         Schema::create('parking_tickets', function (Blueprint $table): void {
