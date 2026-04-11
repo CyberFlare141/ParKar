@@ -62,7 +62,7 @@ ParKar reduces paperwork, saves administrative time, improves transparency, and 
 - **Frontend:** React.js  
 - **Rendering Method:** Client-Side Rendering (CSR)  
 - **AI Layer:** Python (FastAPI) / External AI API  
-- **Database:** MySQL  
+- **Database:** PostgreSQL  
 
 This project now uses a database-first setup.
 Import source of truth: `schema.sql`
@@ -183,12 +183,6 @@ POST   /api/admin/reject/{id}
 2. Run `docker compose up -d --build`
 3. Run `docker compose exec app php artisan key:generate`
 
-MySQL imports `schema.sql` automatically on first startup of a fresh `mysql_data` volume. This replaces the old migration/seeder flow.
+PostgreSQL imports `schema.sql` automatically on first startup of a fresh `postgres_data` volume. This replaces the old migration/seeder flow.
 Do not run Laravel migrations for local setup; keep schema changes in `schema.sql`.
-For an existing `mysql_data` volume, apply compatible SQL patches from `database/patches` instead of running Laravel migrations.
-
-Example:
-
-```powershell
-Get-Content database\patches\2026_04_10_google_oauth_users.sql | docker compose exec -T mysql mysql -uroot -pParKar -D ParKar
-```
+If you are switching from an older MySQL-based Docker setup, recreate the database with `docker compose down -v` before bringing the stack back up.

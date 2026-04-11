@@ -1,13 +1,13 @@
 Open:
 http://localhost:18081
 
-The database schema is imported automatically from `schema.sql` when you start Docker with a fresh `mysql_data` volume.
-For an existing database volume, apply SQL patches from `database/patches` instead of Laravel migrations.
+The database schema is imported automatically from `schema.sql` when you start Docker with a fresh `postgres_data` volume.
+If you are switching from an older MySQL setup, recreate the database with `docker compose down -v` before starting again.
 
 
 Use these login values:
-System: MySQL
-Server: mysql (or parkar_mysql)
-Username: root
+System: PostgreSQL
+Server: postgres
+Username: postgres
 Password: ParKar
 Database: ParKar
