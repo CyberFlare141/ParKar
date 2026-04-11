@@ -2,14 +2,11 @@ services:
   - type: web
     name: parkar-backend
     runtime: docker
-    plan: starter
-    dockerfilePath: ./Dockerfile
+    plan: free
+    dockerfilePath: ./Dockerfile.render
     dockerContext: .
     healthCheckPath: /api/health 
-    disk:
-      name: parkar-storage
-      mountPath: /opt/render/project/src/storage
-      sizeGB: 1
+  
     envVars:
       - key: APP_NAME
         value: Laravel
@@ -28,11 +25,11 @@ services:
       - key: LOG_LEVEL
         value: info
       - key: DB_CONNECTION
-        value: mysql
+        value: pgsql
       - key: DB_HOST
         sync: false
       - key: DB_PORT
-        value: "3306"
+        value: "5432"
       - key: DB_DATABASE
         sync: false
       - key: DB_USERNAME

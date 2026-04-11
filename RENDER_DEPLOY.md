@@ -38,6 +38,7 @@ Set these in Render from your current backend `.env` values:
 - `APP_URL`
 - `APP_KEY`
 - `DB_HOST`
+- `DB_PORT`
 - `DB_DATABASE`
 - `DB_USERNAME`
 - `DB_PASSWORD`
@@ -64,9 +65,9 @@ Set these in Render from your current backend `.env` values:
 
 ## Database note
 
-This repo uses a database-first setup with `schema.sql`.
+This repo uses a database-first setup with PostgreSQL `schema.sql`.
 
-If you keep using your external MySQL database, just point Render to it with the `DB_*` variables.
+Point Render to your PostgreSQL instance with the `DB_*` variables.
 If you create a new empty database, import `schema.sql` into that database before using the app.
 
 ## After deploy
