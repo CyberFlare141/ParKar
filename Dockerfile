@@ -33,5 +33,5 @@ RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoload
 # Expose Railway port
 EXPOSE 8080
 
-# ✅ Start Laravel (NO predeploy)
-CMD php artisan serve --host=0.0.0.0 --port=${PORT:-8080}
+# ✅ FINAL FIX: use PHP built-in server (NOT artisan serve)
+CMD php -S 0.0.0.0:${PORT:-8080} -t public
