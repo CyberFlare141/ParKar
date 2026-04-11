@@ -97,8 +97,10 @@ export default function RenewalOverview() {
     };
   }, []);
 
-  const baseApplications =
-    dashboard?.application_history || dashboard?.recent_applications || [];
+  const baseApplications = useMemo(
+    () => dashboard?.application_history || dashboard?.recent_applications || [],
+    [dashboard],
+  );
   const applications = useMemo(
     () => getCombinedStudentApplications(authUser?.id, baseApplications),
     [authUser?.id, baseApplications],

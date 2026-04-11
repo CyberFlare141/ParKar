@@ -1,19 +1,16 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 
 export default function useClientPagination(items, { pageSize = 5, resetKeys = [] } = {}) {
-  const [currentPage, setCurrentPage] = useState(1);
+  const [paginationState, setPaginationState] = useState(() => ({
+    currentPage: 1,
+    resetSignature: JSON.stringify(resetKeys),
+  }));
   const safeItems = Array.isArray(items) ? items : [];
   const totalItems = safeItems.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const resetSignature = JSON.stringify(resetKeys);
-  const resetSignatureRef = useRef(resetSignature);
-
-  let resolvedCurrentPage = currentPage;
-
-  if (resetSignatureRef.current !== resetSignature) {
-    resetSignatureRef.current = resetSignature;
-    resolvedCurrentPage = 1;
-  }
+  const didReset = paginationState.resetSignature !== resetSignature;
+  let resolvedCurrentPage = didReset ? 1 : paginationState.currentPage;
 
   resolvedCurrentPage = Math.min(Math.max(resolvedCurrentPage, 1), totalPages);
 
@@ -23,12 +20,21 @@ export default function useClientPagination(items, { pageSize = 5, resetKeys = [
   }, [pageSize, resolvedCurrentPage, safeItems]);
 
   const handlePageChange = (value) => {
-    const nextPage =
-      typeof value === "function"
-        ? value(resolvedCurrentPage)
-        : value;
+    setPaginationState((previousState) => {
+      const previousPage =
+        previousState.resetSignature !== resetSignature
+          ? 1
+          : previousState.currentPage;
+      const nextPage =
+        typeof value === "function"
+          ? value(previousPage)
+          : value;
 
-    setCurrentPage(Math.min(Math.max(Number(nextPage) || 1, 1), totalPages));
+      return {
+        currentPage: Math.min(Math.max(Number(nextPage) || 1, 1), totalPages),
+        resetSignature,
+      };
+    });
   };
 
   return {

@@ -105,9 +105,9 @@ export default function MyDocuments() {
   }, [loadDocuments]);
 
   const student = dashboard?.student || authUser || {};
-  const baseApplications = dashboard?.application_history || [];
+  const baseApplications = useMemo(() => dashboard?.application_history || [], [dashboard]);
   const combinedApplications = getCombinedStudentApplications(student?.id, baseApplications);
-  const rootDocuments = dashboard?.documents || [];
+  const rootDocuments = useMemo(() => dashboard?.documents || [], [dashboard]);
 
   const applicationDocumentGroups = useMemo(
     () =>

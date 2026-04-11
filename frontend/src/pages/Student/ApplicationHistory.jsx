@@ -113,7 +113,7 @@ export default function ApplicationHistory() {
   );
   const combinedApplications = useMemo(
     () => getCombinedStudentApplications(student?.id, applications),
-    [applications, renewalApplications],
+    [applications, student?.id],
   );
   const overview = useMemo(() => {
     const countByStatus = (status) =>
