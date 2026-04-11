@@ -1,0 +1,118 @@
+@import url("https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@400;500;600;700&display=swap");
+
+.pk-teacher-shell {
+  position: relative;
+  overflow: hidden;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top center, rgba(56, 189, 248, 0.16), transparent 28%),
+    radial-gradient(circle at 82% 16%, rgba(45, 212, 191, 0.12), transparent 22%),
+    linear-gradient(180deg, #0b0d10 0%, #101419 42%, #0b0d10 100%);
+  font-family: "DM Sans", system-ui, sans-serif;
+}
+
+.pk-teacher-backdrop {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 54px 54px;
+  mask-image: radial-gradient(circle at center, black 38%, transparent 100%);
+  opacity: 0.42;
+}
+
+.pk-teacher-hero {
+  position: relative;
+  background:
+    linear-gradient(135deg, rgba(17, 20, 24, 0.96), rgba(11, 13, 16, 0.92)),
+    linear-gradient(180deg, rgba(56, 189, 248, 0.08), transparent);
+}
+
+.pk-teacher-hero::before {
+  content: "";
+  position: absolute;
+  inset: -20% auto auto -10%;
+  width: 260px;
+  height: 260px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.22), transparent 70%);
+  filter: blur(18px);
+  pointer-events: none;
+}
+
+.pk-teacher-hero::after {
+  content: "";
+  position: absolute;
+  right: -40px;
+  bottom: -60px;
+  width: 260px;
+  height: 260px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(45, 212, 191, 0.16), transparent 72%);
+  filter: blur(16px);
+  pointer-events: none;
+}
+
+.pk-teacher-kicker {
+  backdrop-filter: blur(12px);
+}
+
+.pk-teacher-title {
+  font-family: "Instrument Serif", serif;
+  letter-spacing: -0.04em;
+}
+
+.pk-teacher-title span {
+  color: #38bdf8;
+  font-style: italic;
+}
+
+.pk-teacher-badge-success {
+  background: rgba(45, 212, 191, 0.16);
+  color: #99f6e4;
+  border: 1px solid rgba(45, 212, 191, 0.28);
+}
+
+.pk-teacher-badge-warning {
+  background: rgba(250, 204, 21, 0.16);
+  color: #fde68a;
+  border: 1px solid rgba(250, 204, 21, 0.28);
+}
+
+.pk-teacher-badge-danger {
+  background: rgba(248, 113, 113, 0.16);
+  color: #fecaca;
+  border: 1px solid rgba(248, 113, 113, 0.28);
+}
+
+.pk-teacher-scroll {
+  max-height: 24rem;
+  overflow-y: auto;
+  padding-right: 0.35rem;
+}
+
+.pk-teacher-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.pk-teacher-scroll::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 999px;
+}
+
+.pk-teacher-scroll::-webkit-scrollbar-thumb {
+  background: rgba(56, 189, 248, 0.45);
+  border-radius: 999px;
+}
+
+@media (max-width: 640px) {
+  .pk-teacher-backdrop {
+    background-size: 38px 38px;
+  }
+
+  .pk-teacher-title {
+    font-size: 2.35rem;
+  }
+}

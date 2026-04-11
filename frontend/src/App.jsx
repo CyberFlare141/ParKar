@@ -150,6 +150,30 @@ function App() {
           }
         />
         <Route
+          path="/teacher/apply"
+          element={
+            <ProtectedRoute allowedRoles={["teacher"]}>
+              <ApplyParking />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/teacher/renew"
+          element={
+            <ProtectedRoute allowedRoles={["teacher"]}>
+              <RenewalOverview />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/teacher/renew/:applicationId"
+          element={
+            <ProtectedRoute allowedRoles={["teacher"]}>
+              <RenewApplication />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/teacher/vehicles"
           element={
             <ProtectedRoute allowedRoles={["teacher"]}>

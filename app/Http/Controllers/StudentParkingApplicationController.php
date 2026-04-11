@@ -20,6 +20,7 @@ use Throwable;
 
 class StudentParkingApplicationController extends Controller
 {
+    private const RENEWAL_NOTE_PREFIX = 'Renewal Meta:';
     private const STUDY_SEMESTERS = [
         '1.1',
         '1.2',
@@ -82,6 +83,8 @@ class StudentParkingApplicationController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
+        $renewalContext = $this->buildRenewalContext($applications);
+
         $vehicles = Vehicle::query()
             ->where('user_id', $user->id)
             ->orderByDesc('id')
@@ -139,14 +142,14 @@ class StudentParkingApplicationController extends Controller
                     'verified_documents' => $documents->where('is_verified', true)->count(),
                 ],
                 'latest_application' => $latestApplication
-                    ? $this->toStudentApplicationSummary($latestApplication)
+                    ? $this->toStudentApplicationSummary($latestApplication, $renewalContext)
                     : null,
                 'recent_applications' => $applications
                     ->take(5)
-                    ->map(fn (ParkingApplication $application): array => $this->toStudentApplicationSummary($application))
+                    ->map(fn (ParkingApplication $application): array => $this->toStudentApplicationSummary($application, $renewalContext))
                     ->values(),
                 'application_history' => $applications
-                    ->map(fn (ParkingApplication $application): array => $this->toStudentApplicationSummary($application))
+                    ->map(fn (ParkingApplication $application): array => $this->toStudentApplicationSummary($application, $renewalContext))
                     ->values(),
                 'vehicles' => $vehicles->map(fn (Vehicle $vehicle): array => [
                     'id' => $vehicle->id,
@@ -169,12 +172,216 @@ class StudentParkingApplicationController extends Controller
         ]);
     }
 
+    public function renew(Request $request, ParkingApplication $parkingApplication): JsonResponse
+    {
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+
+        $sourceApplication = ParkingApplication::query()
+            ->with([
+                'documents:id,document_type,file_path,is_verified,created_at',
+                'vehicle:id,plate_number,vehicle_type,brand,model,color,registration_number',
+            ])
+            ->whereKey($parkingApplication->id)
+            ->where('user_id', $user->id)
+            ->first();
+
+        if (!$sourceApplication) {
+            return response()->json([
+                'message' => 'Application not found.',
+            ], 404);
+        }
+
+        if (!in_array($sourceApplication->status, ['approved', 'active'], true)) {
+            return response()->json([
+                'message' => 'Only approved applications can be renewed.',
+            ], 422);
+        }
+
+        $payload = $request->validate([
+            'document_mode' => ['required', 'in:keep,update,add'],
+            'acknowledged' => ['required', 'boolean'],
+            'review_note' => ['nullable', 'string', 'max:2000'],
+            'documents' => ['nullable', 'array'],
+            'documents.vehicle_registration_certificate' => [
+                'nullable',
+                'file',
+                'mimetypes:application/pdf,image/jpeg,image/png',
+                'max:5120',
+            ],
+            'documents.driving_license' => [
+                'nullable',
+                'file',
+                'mimetypes:application/pdf,image/jpeg,image/png',
+                'max:5120',
+            ],
+            'documents.university_id_card' => [
+                'nullable',
+                'file',
+                'mimetypes:application/pdf,image/jpeg,image/png',
+                'max:5120',
+            ],
+            'documents.vehicle_photo' => [
+                'nullable',
+                'file',
+                'mimetypes:application/pdf,image/jpeg,image/png',
+                'max:5120',
+            ],
+        ]);
+
+        if (!(bool) $payload['acknowledged']) {
+            return response()->json([
+                'message' => 'Please confirm the renewal summary before submitting.',
+            ], 422);
+        }
+
+        $uploadedFields = collect(self::DOCUMENT_FIELD_TO_TYPE)
+            ->keys()
+            ->filter(fn (string $field): bool => $request->hasFile("documents.$field"))
+            ->values()
+            ->all();
+
+        if ($payload['document_mode'] === 'update' && $uploadedFields === []) {
+            return response()->json([
+                'message' => 'Upload at least one replacement document or keep the existing files.',
+            ], 422);
+        }
+
+        if ($payload['document_mode'] === 'add' && $uploadedFields === []) {
+            return response()->json([
+                'message' => 'Add at least one supporting document before continuing.',
+            ], 422);
+        }
+
+        $storedPaths = [];
+
+        try {
+            DB::beginTransaction();
+
+            $allApplications = ParkingApplication::query()
+                ->where('user_id', $user->id)
+                ->orderBy('id')
+                ->get();
+
+            $renewalContext = $this->buildRenewalContext($allApplications);
+            $sourceMeta = $renewalContext[$sourceApplication->id] ?? [
+                'is_renewal' => false,
+                'renewal_source_application_id' => null,
+                'renewal_sequence' => null,
+                'renewal_count' => 0,
+                'last_renewed_at' => null,
+            ];
+            $rootApplicationId = (int) ($sourceMeta['renewal_source_application_id'] ?: $sourceApplication->id);
+            $nextSequence = (int) ($renewalContext[$rootApplicationId]['renewal_count'] ?? 0) + 1;
+            $semester = $this->resolveSubmissionSemester();
+
+            $renewalApplication = ParkingApplication::query()->create([
+                'user_id' => $user->id,
+                'semester_id' => $semester->id,
+                'vehicle_id' => $sourceApplication->vehicle_id,
+                'status' => 'pending',
+                'register_as' => (string) $user->role,
+                'applicant_name' => (string) $sourceApplication->applicant_name,
+                'applicant_university_id' => (string) $sourceApplication->applicant_university_id,
+                'applicant_email' => (string) $sourceApplication->applicant_email,
+                'applicant_phone' => (string) $sourceApplication->applicant_phone,
+                'notes' => $this->buildRenewalNotes(
+                    $payload['document_mode'],
+                    $rootApplicationId,
+                    $nextSequence,
+                    isset($payload['review_note']) ? trim((string) $payload['review_note']) : ''
+                ),
+                'nda_signed' => (bool) $sourceApplication->nda_signed,
+            ]);
+
+            $existingDocuments = $sourceApplication->documents->keyBy('document_type');
+            $attachedDocumentIds = [];
+
+            foreach (self::DOCUMENT_FIELD_TO_TYPE as $field => $documentType) {
+                $hasUpload = $request->hasFile("documents.$field");
+
+                if ($hasUpload) {
+                    $file = $request->file("documents.$field");
+                    $path = $file->store("parking-documents/{$user->id}", 'public');
+                    $storedPaths[] = $path;
+
+                    $document = Document::query()->create([
+                        'user_id' => $user->id,
+                        'document_type' => $documentType,
+                        'file_path' => $path,
+                        'is_verified' => false,
+                    ]);
+
+                    $attachedDocumentIds[] = (int) $document->id;
+                    continue;
+                }
+
+                if ($existingDocuments->has($documentType)) {
+                    $attachedDocumentIds[] = (int) $existingDocuments[$documentType]->id;
+                }
+            }
+
+            foreach (array_values(array_unique($attachedDocumentIds)) as $documentId) {
+                ApplicationDocument::query()->create([
+                    'application_id' => $renewalApplication->id,
+                    'document_id' => $documentId,
+                    'created_at' => now(),
+                ]);
+            }
+
+            DB::commit();
+
+            NotificationPublisher::createForUser(
+                $user->id,
+                'Renewal submitted',
+                "Your renewal request for application #{$rootApplicationId} has been submitted and is now pending review."
+            );
+            NotificationPublisher::createForRole(
+                'admin',
+                'New renewal request',
+                "{$user->name} submitted renewal request #{$renewalApplication->id} for application #{$rootApplicationId}."
+            );
+
+            return response()->json([
+                'message' => 'Renewal submitted successfully.',
+                'data' => [
+                    'application_id' => $renewalApplication->id,
+                    'status' => $renewalApplication->status,
+                ],
+            ], 201);
+        } catch (Throwable $exception) {
+            DB::rollBack();
+
+            foreach ($storedPaths as $storedPath) {
+                Storage::disk('public')->delete($storedPath);
+            }
+
+            report($exception);
+
+            return response()->json([
+                'message' => 'Failed to submit renewal. Please try again.',
+            ], 500);
+        }
+    }
+
     public function store(Request $request): JsonResponse
     {
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+        $isTeacher = $user->role === 'teacher';
+
         $payload = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'aust_id' => ['required', 'string', 'max:50'],
-            'study_semester' => ['required', 'in:' . implode(',', self::STUDY_SEMESTERS)],
+            'study_semester' => $isTeacher
+                ? ['nullable', 'string', 'max:50']
+                : ['required', 'in:' . implode(',', self::STUDY_SEMESTERS)],
+            'department' => $isTeacher
+                ? ['required', 'string', 'max:255']
+                : ['nullable', 'string', 'max:255'],
+            'academic_role' => $isTeacher
+                ? ['required', 'in:lecturer,professor,associate_professor,adjunct_professor']
+                : ['nullable', 'string', 'max:80'],
             'email' => ['required', 'email:rfc', 'max:255'],
             'contact_phone' => ['required', 'string', 'max:20'],
             'vehicle_plate' => ['required', 'string', 'max:20'],
@@ -212,8 +419,6 @@ class StudentParkingApplicationController extends Controller
             ],
         ]);
 
-        /** @var \App\Models\User $user */
-        $user = $request->user();
         $semester = $this->resolveSubmissionSemester();
 
         $aiResultsByField = [];
@@ -279,6 +484,9 @@ class StudentParkingApplicationController extends Controller
                 'email' => strtolower(trim((string) $payload['email'])),
                 'phone' => trim((string) $payload['contact_phone']),
                 'university_id' => trim((string) $payload['aust_id']),
+                'department' => $isTeacher
+                    ? trim((string) $payload['department'])
+                    : $user->department,
             ])->save();
 
             $vehicle = Vehicle::query()->create([
@@ -424,9 +632,23 @@ class StudentParkingApplicationController extends Controller
 
     private function buildStoredNotes(array $payload): ?string
     {
-        $parts = [
-            'Study Semester: ' . trim((string) $payload['study_semester']),
-        ];
+        $parts = [];
+
+        $department = trim((string) ($payload['department'] ?? ''));
+        $academicRole = trim((string) ($payload['academic_role'] ?? ''));
+        $studySemester = trim((string) ($payload['study_semester'] ?? ''));
+
+        if ($department !== '') {
+            $parts[] = 'Department: ' . $department;
+        }
+
+        if ($academicRole !== '') {
+            $parts[] = 'Academic Role: ' . str_replace('_', ' ', $academicRole);
+        }
+
+        if ($studySemester !== '') {
+            $parts[] = 'Study Semester: ' . $studySemester;
+        }
 
         $notes = isset($payload['notes']) ? trim((string) $payload['notes']) : '';
         if ($notes !== '') {
@@ -459,14 +681,27 @@ class StudentParkingApplicationController extends Controller
         ]);
     }
 
-    private function toStudentApplicationSummary(ParkingApplication $application): array
+    private function toStudentApplicationSummary(ParkingApplication $application, array $renewalContext = []): array
     {
+        $renewalMeta = $renewalContext[$application->id] ?? [
+            'is_renewal' => false,
+            'renewal_source_application_id' => null,
+            'renewal_sequence' => null,
+            'renewal_count' => 0,
+            'last_renewed_at' => null,
+        ];
+
         return [
             'id' => $application->id,
             'status' => $application->status,
             'created_at' => $this->toIsoString($application->created_at),
             'reviewed_at' => $this->toIsoString($application->reviewed_at),
             'admin_comment' => $application->admin_comment,
+            'is_renewal' => (bool) $renewalMeta['is_renewal'],
+            'renewal_source_application_id' => $renewalMeta['renewal_source_application_id'],
+            'renewal_sequence' => $renewalMeta['renewal_sequence'],
+            'renewal_count' => $renewalMeta['renewal_count'],
+            'last_renewed_at' => $renewalMeta['last_renewed_at'],
             'semester' => $application->semester ? [
                 'id' => $application->semester->id,
                 'name' => $application->semester->name,
@@ -494,6 +729,111 @@ class StudentParkingApplicationController extends Controller
                 'created_at' => $this->toIsoString($document->created_at),
             ])->values(),
         ];
+    }
+
+    private function buildRenewalNotes(
+        string $documentMode,
+        int $rootApplicationId,
+        int $renewalSequence,
+        string $reviewNote,
+    ): string {
+        $lines = [
+            self::RENEWAL_NOTE_PREFIX,
+            "source_application_id={$rootApplicationId}",
+            "renewal_sequence={$renewalSequence}",
+            "document_mode={$documentMode}",
+        ];
+
+        if ($reviewNote !== '') {
+            $lines[] = "review_note={$reviewNote}";
+        }
+
+        return implode(PHP_EOL, $lines);
+    }
+
+    private function parseRenewalMetadata(?string $notes): array
+    {
+        $normalized = trim((string) $notes);
+        if ($normalized === '' || !str_starts_with($normalized, self::RENEWAL_NOTE_PREFIX)) {
+            return [
+                'is_renewal' => false,
+                'renewal_source_application_id' => null,
+                'renewal_sequence' => null,
+                'document_mode' => null,
+                'review_note' => null,
+            ];
+        }
+
+        $metadata = [
+            'is_renewal' => true,
+            'renewal_source_application_id' => null,
+            'renewal_sequence' => null,
+            'document_mode' => null,
+            'review_note' => null,
+        ];
+
+        foreach (preg_split('/\R+/', $normalized) as $line) {
+            if (!str_contains($line, '=')) {
+                continue;
+            }
+
+            [$key, $value] = array_map('trim', explode('=', $line, 2));
+            if ($key === 'source_application_id') {
+                $metadata['renewal_source_application_id'] = (int) $value;
+            } elseif ($key === 'renewal_sequence') {
+                $metadata['renewal_sequence'] = (int) $value;
+            } elseif ($key === 'document_mode') {
+                $metadata['document_mode'] = $value;
+            } elseif ($key === 'review_note') {
+                $metadata['review_note'] = $value;
+            }
+        }
+
+        return $metadata;
+    }
+
+    private function buildRenewalContext($applications): array
+    {
+        $context = [];
+        $renewalGroups = [];
+
+        foreach ($applications as $application) {
+            $parsed = $this->parseRenewalMetadata($application->notes);
+            $context[$application->id] = [
+                'is_renewal' => (bool) $parsed['is_renewal'],
+                'renewal_source_application_id' => $parsed['renewal_source_application_id'],
+                'renewal_sequence' => $parsed['renewal_sequence'],
+                'renewal_count' => 0,
+                'last_renewed_at' => null,
+            ];
+
+            if ($parsed['is_renewal'] && $parsed['renewal_source_application_id']) {
+                $renewalGroups[$parsed['renewal_source_application_id']][] = $application;
+            }
+        }
+
+        foreach ($renewalGroups as $sourceApplicationId => $groupApplications) {
+            usort($groupApplications, function ($left, $right): int {
+                $leftTime = strtotime((string) $left->created_at);
+                $rightTime = strtotime((string) $right->created_at);
+                return $leftTime <=> $rightTime;
+            });
+            $renewalCount = count($groupApplications);
+            $lastRenewedApplication = $groupApplications[$renewalCount - 1] ?? null;
+            $lastRenewedAt = $this->toIsoString($lastRenewedApplication?->created_at);
+
+            if (isset($context[$sourceApplicationId])) {
+                $context[$sourceApplicationId]['renewal_count'] = $renewalCount;
+                $context[$sourceApplicationId]['last_renewed_at'] = $lastRenewedAt;
+            }
+
+            foreach ($groupApplications as $application) {
+                $context[$application->id]['renewal_count'] = $renewalCount;
+                $context[$application->id]['last_renewed_at'] = $lastRenewedAt;
+            }
+        }
+
+        return $context;
     }
 
     private function toIsoString(mixed $value): ?string

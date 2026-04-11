@@ -35,11 +35,19 @@ const uploadItems = [
 const studySemesterOptions = Array.from({ length: 5 }, (_, yearIndex) =>
   [1, 2].map((term) => `${yearIndex + 1}.${term}`),
 ).flat();
+const teacherAcademicRoleOptions = [
+  { value: "lecturer", label: "Lecturer" },
+  { value: "professor", label: "Professor" },
+  { value: "associate_professor", label: "Associate Professor" },
+  { value: "adjunct_professor", label: "Adjunct Professor" },
+];
 
 const initialValues = {
   name: "",
   aust_id: "",
   study_semester: "",
+  department: "",
+  academic_role: "",
   email: "",
   contact_phone: "",
   vehicle_plate: "",
@@ -111,14 +119,32 @@ function buildAiModalState(aiVerification, fallbackTitle, fallbackMessage) {
 }
 
 export default function ApplyParking() {
+  const authUser = getAuthUser();
+  const role = String(authUser?.role || "student").toLowerCase();
+  const isTeacher = role === "teacher";
+  const dashboardPath = isTeacher ? "/teacher/dashboard" : "/student/dashboard";
+  const applicationEndpoint = isTeacher
+    ? ENDPOINTS.TEACHER_PARKING_APPLICATIONS
+    : ENDPOINTS.STUDENT_PARKING_APPLICATIONS;
+  const applicationTitle = isTeacher
+    ? "Teacher Parking Application"
+    : "Parking Registration Form";
+  const formIntro = isTeacher
+    ? "Submit your faculty parking request with vehicle and document details in the same polished flow used across the ParKar portal."
+    : "Complete your campus parking request with your latest applicant, vehicle, and document details.";
+  const applicantSectionTitle = isTeacher ? "Faculty Information" : "Applicant Information";
+  const studySemesterLabel = isTeacher ? "Department" : "Study Semester";
+  const ndaLabel = isTeacher
+    ? "I want to proceed by also signing an NDA for faculty parking access"
+    : "I want to proceed by also signing an NDA";
   const [values, setValues] = useState(() => {
-    const user = getAuthUser();
     return {
       ...initialValues,
-      name: user?.name || "",
-      aust_id: user?.university_id || "",
-      email: user?.email || "",
-      contact_phone: user?.phone || "",
+      name: authUser?.name || "",
+      aust_id: authUser?.university_id || "",
+      department: authUser?.department || "",
+      email: authUser?.email || "",
+      contact_phone: authUser?.phone || "",
     };
   });
   const [documents, setDocuments] = useState({});
@@ -152,6 +178,7 @@ export default function ApplyParking() {
           ...prev,
           name: user?.name || "",
           aust_id: user?.university_id || "",
+          department: user?.department || prev.department || "",
           email: user?.email || "",
           contact_phone: user?.phone || "",
         }));
@@ -175,6 +202,7 @@ export default function ApplyParking() {
             ...prev,
             name: cachedUser?.name || prev.name,
             aust_id: cachedUser?.university_id || prev.aust_id,
+            department: cachedUser?.department || prev.department,
             email: cachedUser?.email || prev.email,
             contact_phone: cachedUser?.phone || prev.contact_phone,
           }));
@@ -222,10 +250,9 @@ export default function ApplyParking() {
   const validate = () => {
     const nextErrors = {};
 
-    [
+    const requiredFields = [
       "name",
       "aust_id",
-      "study_semester",
       "email",
       "contact_phone",
       "vehicle_plate",
@@ -233,7 +260,15 @@ export default function ApplyParking() {
       "vehicle_color",
       "vehicle_brand",
       "registration_number",
-    ].forEach((field) => {
+    ];
+
+    if (isTeacher) {
+      requiredFields.push("department", "academic_role");
+    } else {
+      requiredFields.push("study_semester");
+    }
+
+    requiredFields.forEach((field) => {
       if (!String(values[field] || "").trim()) {
         nextErrors[field] = "This field is required.";
       }
@@ -298,7 +333,7 @@ export default function ApplyParking() {
       setFeedback("");
 
       const response = await client.post(
-        ENDPOINTS.STUDENT_PARKING_APPLICATIONS,
+        applicationEndpoint,
         formData,
         {
           skipAuthRedirect: true,
@@ -324,6 +359,8 @@ export default function ApplyParking() {
         ...initialValues,
         name: prev.name,
         aust_id: prev.aust_id,
+        department: prev.department,
+        academic_role: "",
         study_semester: "",
         email: prev.email,
         contact_phone: prev.contact_phone,
@@ -383,18 +420,27 @@ export default function ApplyParking() {
     <div className="apply-page">
       <div className="apply-shell">
         <div className="apply-topbar">
+          <Link to={dashboardPath} className="back-btn">
+            Dashboard
+          </Link>
+        </div>
+        <h1 className="apply-title">{applicationTitle}</h1>
+        <p className="apply-subtitle">{formIntro}</p>
+        <div className="apply-quick-links">
           <Link to="/profile" className="back-btn">
             Profile
           </Link>
+          <Link to="/notifications" className="back-btn">
+            Notifications
+          </Link>
         </div>
-        <h1 className="apply-title">Parking Registration Form</h1>
 
         {feedback ? <p className="apply-feedback">{feedback}</p> : null}
 
         <form className="apply-form" onSubmit={handleSubmit} noValidate>
           <div className="apply-top-grid">
             <section className="apply-section">
-              <h2>Applicant Information</h2>
+              <h2>{applicantSectionTitle}</h2>
 
               <div className="field-grid">
                 <label className="field">
@@ -424,24 +470,64 @@ export default function ApplyParking() {
                 </label>
 
                 <label className="field">
-                  <span>Study Semester</span>
-                  <select
-                    name="study_semester"
-                    value={values.study_semester}
-                    onChange={handleChange}
-                    disabled={isLoading || isSubmitting}
-                  >
-                    <option value="">Select study semester</option>
-                    {studySemesterOptions.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.study_semester ? (
-                    <p className="field-error">{errors.study_semester}</p>
-                  ) : null}
+                  <span>{studySemesterLabel}</span>
+                  {isTeacher ? (
+                    <>
+                      <input
+                        type="text"
+                        name="department"
+                        value={values.department}
+                        onChange={handleChange}
+                        placeholder="Enter department"
+                        disabled={isLoading || isSubmitting}
+                      />
+                      {errors.department ? (
+                        <p className="field-error">{errors.department}</p>
+                      ) : null}
+                    </>
+                  ) : (
+                    <>
+                      <select
+                        name="study_semester"
+                        value={values.study_semester}
+                        onChange={handleChange}
+                        disabled={isLoading || isSubmitting}
+                      >
+                        <option value="">Select study semester</option>
+                        {studySemesterOptions.map((option) => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
+                      {errors.study_semester ? (
+                        <p className="field-error">{errors.study_semester}</p>
+                      ) : null}
+                    </>
+                  )}
                 </label>
+
+                {isTeacher ? (
+                  <label className="field">
+                    <span>Academic Role</span>
+                    <select
+                      name="academic_role"
+                      value={values.academic_role}
+                      onChange={handleChange}
+                      disabled={isLoading || isSubmitting}
+                    >
+                      <option value="">Select academic role</option>
+                      {teacherAcademicRoleOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    {errors.academic_role ? (
+                      <p className="field-error">{errors.academic_role}</p>
+                    ) : null}
+                  </label>
+                ) : null}
 
                 <label className="field">
                   <span>Email</span>
@@ -628,7 +714,7 @@ export default function ApplyParking() {
                 onChange={handleChange}
                 disabled={isLoading || isSubmitting}
               />
-              <span>I want to proceed by also signing an NDA</span>
+              <span>{ndaLabel}</span>
             </label>
             {errors.nda_signed ? (
               <p className="field-error">{errors.nda_signed}</p>

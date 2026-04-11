@@ -209,6 +209,15 @@
     shimmer 7s linear 1.5s infinite;
 }
 
+.apply-subtitle {
+  margin: 16px auto 0;
+  max-width: 54rem;
+  text-align: center;
+  color: var(--text-mid);
+  font-size: 0.98rem;
+  line-height: 1.8;
+}
+
 .apply-title::after {
   content: '';
   display: block;
@@ -226,6 +235,14 @@
 .apply-topbar {
   @apply mb-8 flex justify-start;
   animation: slide-down 0.45s var(--ease-spring) 0.05s both;
+}
+
+.apply-quick-links {
+  margin-top: 22px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
 }
 
 .back-btn {
