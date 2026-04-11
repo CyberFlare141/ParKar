@@ -29,6 +29,10 @@ Route::prefix('auth')->group(function () {
     });
 });
 
+Route::get('/health', function () {
+    return response()->json(['status' => 'ok']);
+});
+
 Route::post('/contact', [ContactController::class, 'send']);
 
 Route::middleware('jwt.auth')->group(function () {
