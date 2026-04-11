@@ -7,6 +7,7 @@ export const ENDPOINTS = {
   RESEND_OTP: "/auth/resend-otp",
   ME: "/auth/me",
   PROFILE: "/auth/me",
+  UPDATE_PROFILE: "/auth/me",
   LOGOUT: "/auth/logout",
   NOTIFICATIONS: "/notifications",
   NOTIFICATION_READ: (notificationId) => `/notifications/${notificationId}/read`,

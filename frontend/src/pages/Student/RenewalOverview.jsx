@@ -3,6 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import client from "../../api/client";
 import { ENDPOINTS } from "../../api/endpoints";
 import { clearAuthSession, getAuthUser } from "../../auth/session";
+import PaginationControls from "../../components/PaginationControls";
+import useClientPagination from "../../components/useClientPagination";
 import {
   getCombinedStudentApplications,
   getRenewalAlertClass,
@@ -95,8 +97,10 @@ export default function RenewalOverview() {
     };
   }, []);
 
-  const baseApplications =
-    dashboard?.application_history || dashboard?.recent_applications || [];
+  const baseApplications = useMemo(
+    () => dashboard?.application_history || dashboard?.recent_applications || [],
+    [dashboard],
+  );
   const applications = useMemo(
     () => getCombinedStudentApplications(authUser?.id, baseApplications),
     [authUser?.id, baseApplications],
@@ -113,6 +117,26 @@ export default function RenewalOverview() {
       ),
     [applications],
   );
+  const {
+    currentPage: renewablePage,
+    pageSize: renewablePageSize,
+    paginatedItems: paginatedRenewableApplications,
+    setCurrentPage: setRenewablePage,
+    totalItems: totalRenewableApplications,
+    totalPages: totalRenewablePages,
+  } = useClientPagination(renewableApplications, {
+    pageSize: 3,
+  });
+  const {
+    currentPage: pendingPage,
+    pageSize: pendingPageSize,
+    paginatedItems: paginatedPendingApplications,
+    setCurrentPage: setPendingPage,
+    totalItems: totalPendingApplications,
+    totalPages: totalPendingPages,
+  } = useClientPagination(pendingApplications, {
+    pageSize: 4,
+  });
 
   return (
     <div className="student-renew-overview-page">
@@ -165,7 +189,7 @@ export default function RenewalOverview() {
           </section>
         ) : renewableApplications.length ? (
           <section className="space-y-4">
-            {renewableApplications.map((application) => {
+            {paginatedRenewableApplications.map((application) => {
               const renewalMeta = getRenewalMeta(application, authUser?.id);
 
               return (
@@ -242,6 +266,14 @@ export default function RenewalOverview() {
                 </article>
               );
             })}
+            <PaginationControls
+              currentPage={renewablePage}
+              itemLabel="renewable applications"
+              onPageChange={setRenewablePage}
+              pageSize={renewablePageSize}
+              totalItems={totalRenewableApplications}
+              totalPages={totalRenewablePages}
+            />
           </section>
         ) : (
           <section className="student-renew-overview-panel">
@@ -260,7 +292,7 @@ export default function RenewalOverview() {
 
               {pendingApplications.length ? (
                 <div className="mt-5 space-y-3">
-                  {pendingApplications.map((application) => (
+                  {paginatedPendingApplications.map((application) => (
                     <div
                       key={application.id}
                       className="rounded-2xl border border-amber-300/20 bg-amber-400/10 px-4 py-4"
@@ -283,6 +315,14 @@ export default function RenewalOverview() {
                       </div>
                     </div>
                   ))}
+                  <PaginationControls
+                    currentPage={pendingPage}
+                    itemLabel="pending applications"
+                    onPageChange={setPendingPage}
+                    pageSize={pendingPageSize}
+                    totalItems={totalPendingApplications}
+                    totalPages={totalPendingPages}
+                  />
                 </div>
               ) : null}
             </div>

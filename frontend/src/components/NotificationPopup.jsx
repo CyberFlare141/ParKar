@@ -44,15 +44,16 @@ export default function NotificationPopup() {
   );
 
   useEffect(() => {
+    const timeoutEntries = timeoutIdsRef.current;
+
     return () => {
-      timeoutIdsRef.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
-      timeoutIdsRef.current.clear();
+      timeoutEntries.forEach((timeoutId) => window.clearTimeout(timeoutId));
+      timeoutEntries.clear();
     };
   }, []);
 
   useEffect(() => {
     if (!authToken || !authUser?.id) {
-      setItems([]);
       return undefined;
     }
 

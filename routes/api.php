@@ -23,6 +23,7 @@ Route::prefix('auth')->group(function () {
     });
     Route::middleware('jwt.auth')->group(function () {
         Route::get('/me', [AuthController::class, 'me']);
+        Route::patch('/me', [AuthController::class, 'updateMe']);
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::post('/google/link', [AuthController::class, 'googleLink']);
     });

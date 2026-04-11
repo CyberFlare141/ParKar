@@ -337,6 +337,28 @@ const STYLES = `
     margin-top: 8px;
     justify-content: center;
   }
+  #pk-root .pk-mobile-role {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 8px;
+    margin-bottom: 4px;
+    padding: 12px 14px;
+    border: 1px solid rgba(45,212,191,0.18);
+    border-radius: 14px;
+    background: rgba(45,212,191,0.08);
+  }
+  #pk-root .pk-mobile-role-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: #8dded2;
+  }
+  #pk-root .pk-mobile-role-value {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #e2e4ea;
+  }
 
   /* ── Buttons ── */
   #pk-root .btn {
@@ -1080,7 +1102,6 @@ export default function Landing() {
   const navItems = [
     { label: "Features", href: "#pk-features" },
     { label: "How It Works", href: "#pk-how" },
-    { label: "Permits", href: "#pk-permits" },
     { label: "FAQ", href: "#pk-faq" },
     { label: "About Us", to: "/about" },
   ];
@@ -1206,6 +1227,10 @@ export default function Landing() {
         )}
         {authUser ? (
           <>
+            <div className="pk-mobile-role">
+              <span className="pk-mobile-role-label">Logged in as</span>
+              <span className="pk-mobile-role-value">{roleMenuLabel}</span>
+            </div>
             <Link to="/profile" onClick={() => setMenuOpen(false)} className="btn btn-ghost" style={{ marginTop: "8px" }}>
               Profile
             </Link>
@@ -1386,9 +1411,6 @@ export default function Landing() {
         <span className="pk-sec-tag" style={{ position: "relative", zIndex: 1 }}>Get Started</span>
         <h2 className="pk-cta-title">Ready to ditch<br /><em>the paperwork?</em></h2>
         <p className="pk-cta-sub">Join thousands of students and staff who park smarter every day.</p>
-        <Link to="/register" className="btn btn-teal" style={{ fontSize: "1rem", padding: "15px 36px", borderRadius: "12px", position: "relative", zIndex: 1 }}>
-          Apply Now — It's Free →
-        </Link>
       </section>
 
       {/* ══ FOOTER ══ */}

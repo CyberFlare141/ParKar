@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import client from "../../api/client";
 import { ENDPOINTS } from "../../api/endpoints";
+import PaginationControls from "../../components/PaginationControls";
+import useClientPagination from "../../components/useClientPagination";
 import "./AdminDashboard.css";
 
 const AUTO_REFRESH_INTERVAL_MS = 10000;
@@ -160,6 +162,46 @@ export default function AdminDashboard() {
   const recentAuditLogs = dashboard?.recent_audit_logs || [];
   const adminPresence = dashboard?.admin_presence || {};
   const onlineAdmins = adminPresence.admins || [];
+  const {
+    currentPage: onlineAdminsPage,
+    pageSize: onlineAdminsPageSize,
+    paginatedItems: paginatedOnlineAdmins,
+    setCurrentPage: setOnlineAdminsPage,
+    totalItems: totalOnlineAdmins,
+    totalPages: totalOnlineAdminsPages,
+  } = useClientPagination(onlineAdmins, {
+    pageSize: 4,
+  });
+  const {
+    currentPage: queuePage,
+    pageSize: queuePageSize,
+    paginatedItems: paginatedPriorityQueue,
+    setCurrentPage: setQueuePage,
+    totalItems: totalPriorityQueueItems,
+    totalPages: totalPriorityQueuePages,
+  } = useClientPagination(priorityQueue, {
+    pageSize: 4,
+  });
+  const {
+    currentPage: applicationsPage,
+    pageSize: applicationsPageSize,
+    paginatedItems: paginatedRecentApplications,
+    setCurrentPage: setApplicationsPage,
+    totalItems: totalRecentApplicationItems,
+    totalPages: totalRecentApplicationPages,
+  } = useClientPagination(recentApplications, {
+    pageSize: 6,
+  });
+  const {
+    currentPage: auditPage,
+    pageSize: auditPageSize,
+    paginatedItems: paginatedAuditLogs,
+    setCurrentPage: setAuditPage,
+    totalItems: totalAuditItems,
+    totalPages: totalAuditPages,
+  } = useClientPagination(recentAuditLogs, {
+    pageSize: 4,
+  });
 
   const statCards = [
     {
@@ -189,13 +231,6 @@ export default function AdminDashboard() {
     { label: "Teachers", value: overview.teacher_users ?? 0 },
     { label: "Admins", value: overview.admin_users ?? 0 },
     { label: "Active Accounts", value: overview.active_users ?? 0 },
-  ];
-
-  const quickLinks = [
-    { label: "Review queue", to: "/admin/review", detail: "Handle pending permit submissions" },
-    { label: "Manage users", to: "/admin/users", detail: "Adjust roles and account access" },
-    { label: "AI analysis", to: "/admin/ai-analysis", detail: "Open the separate AI review workspace" },
-    { label: "Reports", to: "/admin/reports", detail: "Summaries for operations and planning" },
   ];
 
   return (
@@ -234,12 +269,6 @@ export default function AdminDashboard() {
                   className="inline-flex items-center justify-center rounded-full bg-teal-400 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:-translate-y-0.5 hover:bg-white"
                 >
                   Open Review Queue
-                </Link>
-                <Link
-                  to="/admin/ai-analysis"
-                  className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/5 px-5 py-3 text-sm font-semibold text-slate-100 transition hover:border-teal-300/40 hover:text-teal-200"
-                >
-                  Inspect AI Signals
                 </Link>
                 <Link
                   to="/logout"
@@ -388,7 +417,7 @@ export default function AdminDashboard() {
 
                   <div className="mt-6 space-y-3">
                     {onlineAdmins.length ? (
-                      onlineAdmins.map((presenceAdmin) => (
+                      paginatedOnlineAdmins.map((presenceAdmin) => (
                         <div
                           key={presenceAdmin.id}
                           className="rounded-2xl border border-white/8 bg-[#0b0d10] px-4 py-3"
@@ -405,12 +434,20 @@ export default function AdminDashboard() {
                         No admin activity detected in the current session window.
                       </p>
                     )}
+                    <PaginationControls
+                      currentPage={onlineAdminsPage}
+                      itemLabel="admins"
+                      onPageChange={setOnlineAdminsPage}
+                      pageSize={onlineAdminsPageSize}
+                      totalItems={totalOnlineAdmins}
+                      totalPages={totalOnlineAdminsPages}
+                    />
                   </div>
                 </div>
               </article>
             </section>
 
-            <section className="grid gap-5 lg:grid-cols-[0.95fr_1.05fr]">
+            <section className="grid gap-5">
               <article className="pk-admin-panel pk-admin-rise-5 rounded-[24px] border border-white/10 p-6">
                 <div className="flex items-center justify-between gap-4">
                   <div>
@@ -431,7 +468,7 @@ export default function AdminDashboard() {
 
                 <div className="mt-6 space-y-3">
                   {priorityQueue.length ? (
-                    priorityQueue.map((application) => (
+                    paginatedPriorityQueue.map((application) => (
                       <div
                         key={application.id}
                         className="rounded-[22px] border border-white/8 bg-[#0b0d10] p-4 transition hover:border-teal-400/25 hover:bg-[#0f1317]"
@@ -461,32 +498,14 @@ export default function AdminDashboard() {
                       No pending applications need triage right now.
                     </div>
                   )}
-                </div>
-              </article>
-
-              <article className="pk-admin-panel pk-admin-rise-6 rounded-[24px] border border-white/10 p-6">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.2em] text-teal-300">
-                      Operations
-                    </p>
-                    <h2 className="mt-2 text-2xl font-semibold text-white">
-                      Quick control links
-                    </h2>
-                  </div>
-                </div>
-
-                <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                  {quickLinks.map((link) => (
-                    <Link
-                      key={link.to}
-                      to={link.to}
-                      className="pk-admin-link-card rounded-[22px] border border-white/8 bg-white/5 p-5"
-                    >
-                      <p className="text-lg font-semibold text-white">{link.label}</p>
-                      <p className="mt-2 text-sm leading-7 text-slate-400">{link.detail}</p>
-                    </Link>
-                  ))}
+                  <PaginationControls
+                    currentPage={queuePage}
+                    itemLabel="priority applications"
+                    onPageChange={setQueuePage}
+                    pageSize={queuePageSize}
+                    totalItems={totalPriorityQueueItems}
+                    totalPages={totalPriorityQueuePages}
+                  />
                 </div>
               </article>
             </section>
@@ -514,7 +533,7 @@ export default function AdminDashboard() {
 
                   <div className="divide-y divide-white/6">
                     {recentApplications.length ? (
-                      recentApplications.map((application) => (
+                      paginatedRecentApplications.map((application) => (
                         <div
                           key={application.id}
                           className="grid grid-cols-1 gap-3 bg-[#0b0d10] px-4 py-4 md:grid-cols-[1.15fr_0.7fr_0.55fr_0.6fr] md:items-center md:gap-4"
@@ -547,6 +566,14 @@ export default function AdminDashboard() {
                     )}
                   </div>
                 </div>
+                <PaginationControls
+                  currentPage={applicationsPage}
+                  itemLabel="recent applications"
+                  onPageChange={setApplicationsPage}
+                  pageSize={applicationsPageSize}
+                  totalItems={totalRecentApplicationItems}
+                  totalPages={totalRecentApplicationPages}
+                />
               </article>
 
               <article className="pk-admin-panel pk-admin-rise-4 rounded-[24px] border border-white/10 p-6">
@@ -563,7 +590,7 @@ export default function AdminDashboard() {
 
                 <div className="mt-6 space-y-3">
                   {recentAuditLogs.length ? (
-                    recentAuditLogs.map((log) => (
+                    paginatedAuditLogs.map((log) => (
                       <div
                         key={log.id}
                         className="rounded-[22px] border border-white/8 bg-[#0b0d10] p-4"
@@ -589,6 +616,14 @@ export default function AdminDashboard() {
                       Review activity will appear here after approvals or rejections.
                     </div>
                   )}
+                  <PaginationControls
+                    currentPage={auditPage}
+                    itemLabel="audit entries"
+                    onPageChange={setAuditPage}
+                    pageSize={auditPageSize}
+                    totalItems={totalAuditItems}
+                    totalPages={totalAuditPages}
+                  />
                 </div>
               </article>
             </section>
