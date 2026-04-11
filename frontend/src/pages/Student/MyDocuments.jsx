@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import client from "../../api/client";
 import { ENDPOINTS } from "../../api/endpoints";
 import { clearAuthSession, getAuthUser } from "../../auth/session";
+import PaginationControls, { useClientPagination } from "../../components/PaginationControls";
 import { getCombinedStudentApplications } from "./renewalUtils";
 import "./MyDocuments.css";
 
@@ -178,10 +179,39 @@ export default function MyDocuments() {
           const leftTime = new Date(left?.created_at || 0).getTime();
           const rightTime = new Date(right?.created_at || 0).getTime();
           return rightTime - leftTime;
-        })
-        .slice(0, 4),
+        }),
     [applicationDocumentGroups, standaloneDocuments],
   );
+  const {
+    currentPage: applicationPage,
+    pageSize: applicationPageSize,
+    paginatedItems: paginatedApplicationGroups,
+    setCurrentPage: setApplicationPage,
+    totalItems: totalApplicationGroups,
+    totalPages: totalApplicationPages,
+  } = useClientPagination(applicationDocumentGroups, {
+    pageSize: 3,
+  });
+  const {
+    currentPage: latestPage,
+    pageSize: latestPageSize,
+    paginatedItems: paginatedLatestDocuments,
+    setCurrentPage: setLatestPage,
+    totalItems: totalLatestDocuments,
+    totalPages: totalLatestPages,
+  } = useClientPagination(latestDocuments, {
+    pageSize: 4,
+  });
+  const {
+    currentPage: standalonePage,
+    pageSize: standalonePageSize,
+    paginatedItems: paginatedStandaloneDocuments,
+    setCurrentPage: setStandalonePage,
+    totalItems: totalStandaloneDocuments,
+    totalPages: totalStandalonePages,
+  } = useClientPagination(standaloneDocuments, {
+    pageSize: 4,
+  });
 
   return (
     <div className="student-documents-page">
@@ -319,7 +349,7 @@ export default function MyDocuments() {
               </div>
             ) : applicationDocumentGroups.length ? (
               <div className="mt-6 space-y-5">
-                {applicationDocumentGroups.map((group) => (
+                {paginatedApplicationGroups.map((group) => (
                   <article key={group.id} className="student-documents-application-card">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
@@ -386,6 +416,14 @@ export default function MyDocuments() {
                     </div>
                   </article>
                 ))}
+                <PaginationControls
+                  currentPage={applicationPage}
+                  itemLabel="application records"
+                  onPageChange={setApplicationPage}
+                  pageSize={applicationPageSize}
+                  totalItems={totalApplicationGroups}
+                  totalPages={totalApplicationPages}
+                />
               </div>
             ) : (
               <div className="mt-6 rounded-[22px] border border-dashed border-white/15 bg-white/[0.03] p-5 text-sm text-slate-400">
@@ -414,7 +452,7 @@ export default function MyDocuments() {
                     <div className="h-20 animate-pulse rounded-2xl bg-white/5" />
                   </>
                 ) : latestDocuments.length ? (
-                  latestDocuments.map((document) => (
+                  paginatedLatestDocuments.map((document) => (
                     <div
                       key={document._documentKey}
                       className="rounded-2xl border border-white/8 bg-white/5 px-4 py-4"
@@ -443,6 +481,14 @@ export default function MyDocuments() {
                     No recent document uploads found.
                   </p>
                 )}
+                <PaginationControls
+                  currentPage={latestPage}
+                  itemLabel="recent documents"
+                  onPageChange={setLatestPage}
+                  pageSize={latestPageSize}
+                  totalItems={totalLatestDocuments}
+                  totalPages={totalLatestPages}
+                />
               </div>
             </article>
 
@@ -463,7 +509,7 @@ export default function MyDocuments() {
                     <div className="h-20 animate-pulse rounded-2xl bg-white/5" />
                   </>
                 ) : standaloneDocuments.length ? (
-                  standaloneDocuments.map((document) => (
+                  paginatedStandaloneDocuments.map((document) => (
                     <div
                       key={document._documentKey}
                       className="rounded-2xl border border-white/8 bg-white/5 px-4 py-4"
@@ -492,6 +538,14 @@ export default function MyDocuments() {
                     No extra standalone uploads outside your application records.
                   </p>
                 )}
+                <PaginationControls
+                  currentPage={standalonePage}
+                  itemLabel="standalone documents"
+                  onPageChange={setStandalonePage}
+                  pageSize={standalonePageSize}
+                  totalItems={totalStandaloneDocuments}
+                  totalPages={totalStandalonePages}
+                />
               </div>
             </article>
           </div>

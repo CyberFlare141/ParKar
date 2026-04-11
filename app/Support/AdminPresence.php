@@ -89,6 +89,15 @@ class AdminPresence
         $activeEntries = $databaseEntries
             ->merge($cachedEntries)
             ->sortByDesc('last_seen_at')
+            ->unique(function (array $entry): string {
+                $email = strtolower(trim((string) ($entry['email'] ?? '')));
+
+                if ($email !== '') {
+                    return $email;
+                }
+
+                return (string) ($entry['id'] ?? '');
+            })
             ->values();
 
         self::persist(

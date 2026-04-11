@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import client from "../../api/client";
 import { ENDPOINTS } from "../../api/endpoints";
+import PaginationControls, { useClientPagination } from "../../components/PaginationControls";
 import {
   getCombinedStudentApplications,
   getRenewalAlertClass,
@@ -141,6 +142,17 @@ export default function ApplicationHistory() {
       return status === activeFilter;
     });
   }, [activeFilter, combinedApplications]);
+  const {
+    currentPage,
+    pageSize,
+    paginatedItems: paginatedApplications,
+    setCurrentPage,
+    totalItems,
+    totalPages,
+  } = useClientPagination(filteredApplications, {
+    pageSize: 4,
+    resetKeys: [activeFilter],
+  });
 
   const summaryFilters = [
     {
@@ -284,7 +296,7 @@ export default function ApplicationHistory() {
             </div>
           ) : filteredApplications.length ? (
             <div className="space-y-4">
-              {filteredApplications.map((application) => (
+              {paginatedApplications.map((application) => (
                 (() => {
                   const renewalMeta = getRenewalMeta(application, student?.id);
 
@@ -418,6 +430,14 @@ export default function ApplicationHistory() {
                   );
                 })()
               ))}
+              <PaginationControls
+                currentPage={currentPage}
+                itemLabel="applications"
+                onPageChange={setCurrentPage}
+                pageSize={pageSize}
+                totalItems={totalItems}
+                totalPages={totalPages}
+              />
             </div>
           ) : (
             <div className="rounded-[22px] border border-dashed border-white/15 bg-white/[0.03] p-5 text-sm text-slate-400">

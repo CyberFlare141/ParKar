@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import client from "../api/client";
 import { ENDPOINTS } from "../api/endpoints";
 import { getAuthUser } from "../auth/session";
+import PaginationControls, { useClientPagination } from "../components/PaginationControls";
 import { getCombinedStudentApplications, getRenewalMeta } from "./Student/renewalUtils";
 import "./notifications.css";
 
@@ -163,13 +164,24 @@ export default function Notifications() {
       updatedAt: formatDateTime(currentApplication?.created_at),
     },
   ];
-  const latestUpdates = filteredApplications.slice(0, 5).map((application) => ({
+  const latestUpdates = filteredApplications.map((application) => ({
     status: application?.is_renewal ? "Renewal Submitted" : getStageLabel(application),
     time: formatDateTime(application?.created_at),
     title: application?.is_renewal
       ? `Renewal Request #${application.renewal_sequence}`
       : `Application #${application?.id}`,
   }));
+  const {
+    currentPage,
+    pageSize,
+    paginatedItems: paginatedLatestUpdates,
+    setCurrentPage,
+    totalItems,
+    totalPages,
+  } = useClientPagination(latestUpdates, {
+    pageSize: 5,
+    resetKeys: [activeFilter],
+  });
   const statusFlow = buildStatusFlow(currentApplication, renewalMeta);
   const currentStep = statusFlow.find((step) => step.state === "current")?.label || "Unknown";
   const filterItems = [
@@ -295,7 +307,7 @@ export default function Notifications() {
           </div>
 
           <div className="ntf-rows">
-            {latestUpdates.map((update, index) => (
+            {paginatedLatestUpdates.map((update, index) => (
               <article key={`${update.status}-${update.time}-${index}`} className="ntf-row ntf-row-updates ntf-timeline-row">
                 <div className="ntf-timeline-rail" aria-hidden="true">
                   <span
@@ -328,6 +340,14 @@ export default function Notifications() {
               </article>
             ) : null}
           </div>
+          <PaginationControls
+            currentPage={currentPage}
+            itemLabel="updates"
+            onPageChange={setCurrentPage}
+            pageSize={pageSize}
+            totalItems={totalItems}
+            totalPages={totalPages}
+          />
         </section>
       </main>
     </div>

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import client from "../../api/client";
 import { ENDPOINTS } from "../../api/endpoints";
 import { getAuthUser } from "../../auth/session";
+import PaginationControls, { useClientPagination } from "../../components/PaginationControls";
 import { getCombinedStudentApplications } from "./renewalUtils";
 import "./MyVehicles.css";
 
@@ -102,6 +103,16 @@ export default function MyVehicles() {
       return true;
     });
   }, [applications]);
+  const {
+    currentPage,
+    pageSize,
+    paginatedItems: paginatedVehicles,
+    setCurrentPage,
+    totalItems,
+    totalPages,
+  } = useClientPagination(approvedVehicleEntries, {
+    pageSize: 4,
+  });
 
   return (
     <div className="student-vehicles-page">
@@ -153,7 +164,7 @@ export default function MyVehicles() {
           </section>
         ) : approvedVehicleEntries.length ? (
           <section className="grid gap-5 md:grid-cols-2">
-            {approvedVehicleEntries.map((application) => (
+            {paginatedVehicles.map((application) => (
                 <article key={application.id} className="student-vehicles-panel">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
@@ -245,6 +256,16 @@ export default function MyVehicles() {
                 </div>
               </article>
             ))}
+            <div className="md:col-span-2">
+              <PaginationControls
+                currentPage={currentPage}
+                itemLabel="vehicles"
+                onPageChange={setCurrentPage}
+                pageSize={pageSize}
+                totalItems={totalItems}
+                totalPages={totalPages}
+              />
+            </div>
           </section>
         ) : (
           <section className="student-vehicles-panel">

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import client from "../../api/client";
 import { ENDPOINTS } from "../../api/endpoints";
 import { getAuthUser } from "../../auth/session";
+import PaginationControls, { useClientPagination } from "../../components/PaginationControls";
 import {
   getCombinedStudentApplications,
   getRenewalAlertClass,
@@ -113,11 +114,40 @@ export default function StudentDashboard() {
   const combinedApplications = getCombinedStudentApplications(student?.id, baseApplications);
   const latestApplication = combinedApplications[0] || dashboard?.latest_application;
   const renewalHistoryEntries = getUserRenewalHistoryEntries(student?.id, baseApplications);
-  const combinedRecentApplications = combinedApplications.slice(0, 5);
   const latestRenewalMeta = getRenewalMeta(latestApplication, authUser?.id);
   const renewalApplications = recentApplications.filter((application) =>
     getRenewalMeta(application, authUser?.id).canRenew,
   );
+  const {
+    currentPage: recentPage,
+    pageSize: recentPageSize,
+    paginatedItems: paginatedRecentApplications,
+    setCurrentPage: setRecentPage,
+    totalItems: totalRecentApplications,
+    totalPages: totalRecentPages,
+  } = useClientPagination(combinedApplications, {
+    pageSize: 5,
+  });
+  const {
+    currentPage: renewalPage,
+    pageSize: renewalPageSize,
+    paginatedItems: paginatedRenewalApplications,
+    setCurrentPage: setRenewalPage,
+    totalItems: totalRenewalApplications,
+    totalPages: totalRenewalPages,
+  } = useClientPagination(renewalApplications, {
+    pageSize: 4,
+  });
+  const {
+    currentPage: documentPage,
+    pageSize: documentPageSize,
+    paginatedItems: paginatedDocuments,
+    setCurrentPage: setDocumentPage,
+    totalItems: totalDocuments,
+    totalPages: totalDocumentPages,
+  } = useClientPagination(documents, {
+    pageSize: 4,
+  });
 
   const quickStats = [
     {
@@ -449,8 +479,8 @@ export default function StudentDashboard() {
                 </div>
 
                 <div className="mt-6 space-y-4">
-                  {combinedRecentApplications.length ? (
-                    combinedRecentApplications.map((application) => {
+                  {combinedApplications.length ? (
+                    paginatedRecentApplications.map((application) => {
                       const renewalMeta = getRenewalMeta(application, authUser?.id);
 
                       return (
@@ -532,6 +562,14 @@ export default function StudentDashboard() {
                       You have not submitted any parking application yet.
                     </div>
                   )}
+                  <PaginationControls
+                    currentPage={recentPage}
+                    itemLabel="applications"
+                    onPageChange={setRecentPage}
+                    pageSize={recentPageSize}
+                    totalItems={totalRecentApplications}
+                    totalPages={totalRecentPages}
+                  />
                 </div>
               </article>
 
@@ -550,7 +588,7 @@ export default function StudentDashboard() {
 
                   <div className="pk-student-vehicle-list mt-6 space-y-3">
                     {renewalApplications.length ? (
-                      renewalApplications.map((application) => {
+                      paginatedRenewalApplications.map((application) => {
                         const renewalMeta = getRenewalMeta(application, authUser?.id);
 
                         return (
@@ -594,6 +632,14 @@ export default function StudentDashboard() {
                         No approved applications are ready for renewal right now.
                       </p>
                     )}
+                    <PaginationControls
+                      currentPage={renewalPage}
+                      itemLabel="renewal-ready applications"
+                      onPageChange={setRenewalPage}
+                      pageSize={renewalPageSize}
+                      totalItems={totalRenewalApplications}
+                      totalPages={totalRenewalPages}
+                    />
                   </div>
                 </article>
 
@@ -611,7 +657,7 @@ export default function StudentDashboard() {
 
                   <div className="mt-6 space-y-3">
                     {documents.length ? (
-                      documents.slice(0, 4).map((document) => (
+                      paginatedDocuments.map((document) => (
                         <div
                           key={document.id}
                           className="flex items-center justify-between gap-4 rounded-2xl border border-white/8 bg-white/5 px-4 py-3"
@@ -640,6 +686,14 @@ export default function StudentDashboard() {
                         No uploaded documents yet.
                       </p>
                     )}
+                    <PaginationControls
+                      currentPage={documentPage}
+                      itemLabel="documents"
+                      onPageChange={setDocumentPage}
+                      pageSize={documentPageSize}
+                      totalItems={totalDocuments}
+                      totalPages={totalDocumentPages}
+                    />
                   </div>
                 </article>
               </div>

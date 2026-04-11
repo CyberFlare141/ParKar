@@ -240,6 +240,34 @@ class AuthController extends Controller
         ]);
     }
 
+    public function updateMe(Request $request): JsonResponse
+    {
+        /** @var User|null $user */
+        $user = $request->user();
+        if (!$user) {
+            return response()->json([
+                'message' => 'Unauthenticated.',
+            ], 401);
+        }
+
+        $payload = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:20'],
+        ]);
+
+        $user->forceFill([
+            'name' => trim((string) $payload['name']),
+            'phone' => isset($payload['phone']) && trim((string) $payload['phone']) !== ''
+                ? trim((string) $payload['phone'])
+                : null,
+        ])->save();
+
+        return response()->json([
+            'message' => 'Profile updated successfully.',
+            'user' => $this->serializeUser($user->fresh()),
+        ]);
+    }
+
     public function logout(Request $request): JsonResponse
     {
         /** @var User|null $user */

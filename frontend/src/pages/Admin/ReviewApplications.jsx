@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import client from "../../api/client";
 import { ENDPOINTS } from "../../api/endpoints";
+import PaginationControls, { useClientPagination } from "../../components/PaginationControls";
 import "./ReviewApplications.css";
 
 const STATUS_OPTIONS = ["all", "pending", "approved", "rejected", "renewal"];
@@ -199,6 +200,17 @@ export default function ReviewApplications() {
     statusFilter === "renewal"
       ? applications.filter((application) => isRenewalApplication(application))
       : applications;
+  const {
+    currentPage,
+    pageSize,
+    paginatedItems: paginatedApplications,
+    setCurrentPage,
+    totalItems,
+    totalPages,
+  } = useClientPagination(visibleApplications, {
+    pageSize: 10,
+    resetKeys: [statusFilter, searchText],
+  });
   const summaryChips = [
     {
       key: "all",
@@ -459,7 +471,7 @@ export default function ReviewApplications() {
               ) : null}
 
               {!loading
-                ? visibleApplications.map((application) => (
+                ? paginatedApplications.map((application) => (
                     <tr key={application.id}>
                       <td>{application?.applicant?.name || "N/A"}</td>
                       <td>{capitalize(application?.applicant?.role)}</td>
@@ -497,8 +509,19 @@ export default function ReviewApplications() {
             </tbody>
           </table>
         </section>
+        {!loading && visibleApplications.length ? (
+          <PaginationControls
+            className="border-slate-800/80 bg-slate-950/50"
+            currentPage={currentPage}
+            itemLabel="applications"
+            onPageChange={setCurrentPage}
+            pageSize={pageSize}
+            totalItems={totalItems}
+            totalPages={totalPages}
+          />
+        ) : null}
 
-        {applications.map((application) => {
+        {visibleApplications.map((application) => {
           if (application.id !== expandedId) return null;
 
           const isPending = application.status === "pending";
