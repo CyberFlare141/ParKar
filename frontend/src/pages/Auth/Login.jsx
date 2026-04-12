@@ -27,10 +27,6 @@ export default function Login() {
   const navigate = useNavigate();
   const [values, setValues] = useState(initialValues);
   const [errors, setErrors] = useState({});
-  const [otp, setOtp] = useState("");
-  const [step, setStep] = useState("credentials");
-  const [challengeId, setChallengeId] = useState("");
-  const [purpose, setPurpose] = useState("login");
   const [feedback, setFeedback] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const googleRedirectUrl = useMemo(buildGoogleRedirectUrl, []);
@@ -86,15 +82,9 @@ export default function Login() {
       setIsSubmitting(true);
       setFeedback("");
       const response = await client.post(ENDPOINTS.LOGIN, values);
-      setChallengeId(response.data.challenge_id);
-      setPurpose(response.data.purpose || "login");
-      setStep("otp");
-      const debugOtp = response?.data?.debug_otp;
-      setFeedback(
-        debugOtp
-          ? `OTP sent. Debug OTP (APP_DEBUG only): ${debugOtp}`
-          : response.data.message || "OTP sent to your registered contact."
-      );
+      setAuthSession(response.data.token || response.data.access_token, response.data.user);
+      setFeedback("Authentication successful.");
+      navigate(getDashboardPathByRole(response?.data?.user?.role), { replace: true });
     } catch (error) {
       const firstFieldError = error?.response?.data?.errors
         ? Object.values(error.response.data.errors)?.[0]?.[0]
@@ -104,60 +94,6 @@ export default function Login() {
         error?.response?.data?.message ||
         "Unable to start login. Please try again.";
       setFeedback(message);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleVerifyOtp = async (event) => {
-    event.preventDefault();
-    if (!/^\d{6}$/.test(otp.trim())) {
-      setFeedback("Enter a valid 6-digit OTP.");
-      return;
-    }
-
-    try {
-      setIsSubmitting(true);
-      setFeedback("");
-      const response = await client.post(ENDPOINTS.VERIFY_OTP, {
-        challenge_id: challengeId,
-        purpose,
-        otp: otp.trim(),
-      });
-
-      setAuthSession(response.data.token || response.data.access_token, response.data.user);
-      setFeedback("Authentication successful.");
-      navigate(getDashboardPathByRole(response?.data?.user?.role), { replace: true });
-    } catch (error) {
-      const message =
-        error?.response?.data?.message || "OTP verification failed. Please try again.";
-      setFeedback(message);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleResendOtp = async () => {
-    try {
-      setIsSubmitting(true);
-      setFeedback("");
-      const response = await client.post(ENDPOINTS.RESEND_OTP, {
-        challenge_id: challengeId,
-      });
-      setChallengeId(response.data.challenge_id);
-      setPurpose(response.data.purpose || purpose);
-      const debugOtp = response?.data?.debug_otp;
-      setFeedback(
-        debugOtp
-          ? `OTP resent. Debug OTP (APP_DEBUG only): ${debugOtp}`
-          : response.data.message || "OTP resent."
-      );
-    } catch (error) {
-      const firstFieldError = error?.response?.data?.errors
-        ? Object.values(error.response.data.errors)?.[0]?.[0]
-        : null;
-      const message = error?.response?.data?.message || "Failed to resend OTP.";
-      setFeedback(firstFieldError || message);
     } finally {
       setIsSubmitting(false);
     }
@@ -175,134 +111,89 @@ export default function Login() {
             Enter your university credentials to continue.
           </p>
 
-          {step === "credentials" ? (
-            <form className="mt-6 space-y-5" onSubmit={handleSubmit} noValidate>
-              <div>
-                <label
-                  htmlFor="email"
-                  className="mb-1.5 block text-sm font-medium text-slate-700"
-                >
-                  University Email Address
-                </label>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={values.email}
-                  onChange={handleChange}
-                  placeholder="name.dept.id@aust.edu"
-                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
+          <form className="mt-6 space-y-5" onSubmit={handleSubmit} noValidate>
+            <div>
+              <label
+                htmlFor="email"
+                className="mb-1.5 block text-sm font-medium text-slate-700"
+              >
+                University Email Address
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                value={values.email}
+                onChange={handleChange}
+                placeholder="name.dept.id@aust.edu"
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
+              />
+              {errors.email ? (
+                <p className="mt-1 text-sm text-rose-600">{errors.email}</p>
+              ) : null}
+            </div>
+
+            <div>
+              <label
+                htmlFor="password"
+                className="mb-1.5 block text-sm font-medium text-slate-700"
+              >
+                Password
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                value={values.password}
+                onChange={handleChange}
+                placeholder="Enter your password"
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
+              />
+              {errors.password ? (
+                <p className="mt-1 text-sm text-rose-600">{errors.password}</p>
+              ) : null}
+            </div>
+
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {isSubmitting ? "Submitting..." : "Login"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => window.location.assign(googleRedirectUrl)}
+              disabled={isSubmitting}
+              className="flex w-full items-center justify-center gap-3 rounded-xl border border-[#dadce0] bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
+              style={{ fontFamily: '"Google Sans", "Segoe UI", sans-serif' }}
+            >
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                className="h-5 w-5"
+              >
+                <path
+                  fill="#4285F4"
+                  d="M23.49 12.27c0-.79-.07-1.54-.2-2.27H12v4.29h6.44a5.51 5.51 0 0 1-2.39 3.62v3.01h3.87c2.27-2.09 3.57-5.16 3.57-8.65Z"
                 />
-                {errors.email ? (
-                  <p className="mt-1 text-sm text-rose-600">{errors.email}</p>
-                ) : null}
-              </div>
-
-              <div>
-                <label
-                  htmlFor="password"
-                  className="mb-1.5 block text-sm font-medium text-slate-700"
-                >
-                  Password
-                </label>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  value={values.password}
-                  onChange={handleChange}
-                  placeholder="Enter your password"
-                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
+                <path
+                  fill="#34A853"
+                  d="M12 24c3.24 0 5.96-1.07 7.95-2.91l-3.87-3.01c-1.07.72-2.44 1.15-4.08 1.15-3.13 0-5.78-2.11-6.72-4.96H1.28v3.1A12 12 0 0 0 12 24Z"
                 />
-                {errors.password ? (
-                  <p className="mt-1 text-sm text-rose-600">{errors.password}</p>
-                ) : null}
-              </div>
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                {isSubmitting ? "Submitting..." : "Login"}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => window.location.assign(googleRedirectUrl)}
-                disabled={isSubmitting}
-                className="flex w-full items-center justify-center gap-3 rounded-xl border border-[#dadce0] bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
-                style={{ fontFamily: '"Google Sans", "Segoe UI", sans-serif' }}
-              >
-                <svg
-                  aria-hidden="true"
-                  viewBox="0 0 24 24"
-                  className="h-5 w-5"
-                >
-                  <path
-                    fill="#4285F4"
-                    d="M23.49 12.27c0-.79-.07-1.54-.2-2.27H12v4.29h6.44a5.51 5.51 0 0 1-2.39 3.62v3.01h3.87c2.27-2.09 3.57-5.16 3.57-8.65Z"
-                  />
-                  <path
-                    fill="#34A853"
-                    d="M12 24c3.24 0 5.96-1.07 7.95-2.91l-3.87-3.01c-1.07.72-2.44 1.15-4.08 1.15-3.13 0-5.78-2.11-6.72-4.96H1.28v3.1A12 12 0 0 0 12 24Z"
-                  />
-                  <path
-                    fill="#FBBC05"
-                    d="M5.28 14.27A7.2 7.2 0 0 1 4.91 12c0-.79.14-1.56.37-2.27v-3.1H1.28A12 12 0 0 0 0 12c0 1.94.46 3.77 1.28 5.37l4-3.1Z"
-                  />
-                  <path
-                    fill="#EA4335"
-                    d="M12 4.77c1.77 0 3.35.61 4.59 1.8l3.44-3.44C17.95 1.09 15.23 0 12 0A12 12 0 0 0 1.28 6.63l4 3.1c.94-2.85 3.59-4.96 6.72-4.96Z"
-                  />
-                </svg>
-                Continue with Google
-              </button>
-            </form>
-          ) : (
-            <form className="mt-6 space-y-5" onSubmit={handleVerifyOtp} noValidate>
-              <div>
-                <label
-                  htmlFor="otp"
-                  className="mb-1.5 block text-sm font-medium text-slate-700"
-                >
-                  Enter 6-digit OTP
-                </label>
-                <input
-                  id="otp"
-                  name="otp"
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={6}
-                  value={otp}
-                  onChange={(event) => {
-                    const cleaned = event.target.value.replace(/\D/g, "");
-                    setOtp(cleaned);
-                    setFeedback("");
-                  }}
-                  placeholder="123456"
-                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
+                <path
+                  fill="#FBBC05"
+                  d="M5.28 14.27A7.2 7.2 0 0 1 4.91 12c0-.79.14-1.56.37-2.27v-3.1H1.28A12 12 0 0 0 0 12c0 1.94.46 3.77 1.28 5.37l4-3.1Z"
                 />
-              </div>
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                {isSubmitting ? "Verifying..." : "Verify OTP"}
-              </button>
-
-              <button
-                type="button"
-                disabled={isSubmitting}
-                onClick={handleResendOtp}
-                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                Resend OTP
-              </button>
-            </form>
-          )}
+                <path
+                  fill="#EA4335"
+                  d="M12 4.77c1.77 0 3.35.61 4.59 1.8l3.44-3.44C17.95 1.09 15.23 0 12 0A12 12 0 0 0 1.28 6.63l4 3.1c.94-2.85 3.59-4.96 6.72-4.96Z"
+                />
+              </svg>
+              Continue with Google
+            </button>
+          </form>
 
           {feedback ? <p className="mt-4 text-sm text-slate-700">{feedback}</p> : null}
 

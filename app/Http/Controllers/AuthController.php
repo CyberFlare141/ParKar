@@ -102,7 +102,6 @@ class AuthController extends Controller
         $payload = $request->validate([
             'email' => ['required', 'email:rfc', 'max:255'],
             'password' => ['required', 'string', 'max:255'],
-            'otp_channel' => ['nullable', 'in:email,phone'],
         ]);
 
         $email = strtolower(trim((string) $payload['email']));
@@ -127,29 +126,13 @@ class AuthController extends Controller
         }
 
         $detectedRole = $this->syncUserRoleFromEmail($user);
-
-        if (($payload['otp_channel'] ?? 'email') === 'phone' && empty($user->phone)) {
-            throw ValidationException::withMessages([
-                'otp_channel' => ['Phone OTP is unavailable because your account has no phone number.'],
-            ]);
-        }
-
-        $purpose = $user->email_verified_at ? 'login' : 'register';
-        $challenge = $this->otpService->createChallenge(
-            $user,
-            $purpose,
-            $payload['otp_channel'] ?? 'email'
-        );
+        AdminPresence::markOnline($user, (int) config('jwt.ttl_minutes', 60));
 
         return response()->json([
-            'message' => $purpose === 'register'
-                ? 'Account not verified. OTP sent for account verification.'
-                : 'OTP sent. Please verify to complete login.',
-            'requires_otp' => true,
-            'challenge_id' => $challenge['challenge_id'],
-            'purpose' => $purpose,
-            'channel' => $challenge['channel'],
-            'expires_at' => $challenge['expires_at'],
+            'message' => 'Login successful.',
+            'token' => $this->jwtService->issueToken($user),
+            'token_type' => 'Bearer',
+            'user' => $this->serializeUser($user),
             'detected_role' => $detectedRole,
         ]);
     }
