@@ -32,7 +32,7 @@ return [
     'allowed_origins' => $configuredOrigins !== [] ? $configuredOrigins : $defaultOrigins,
 
     'allowed_origins_patterns' => [
-        '^https:\/\/par-kar.*\.vercel\.app$',
+        '/^https:\/\/par-kar.*\.vercel\.app$/',
     ],
 
     'allowed_headers' => ['*'],

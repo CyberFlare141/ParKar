@@ -7,7 +7,7 @@ class RoleDetectionService
     public function isAllowListedEmail(string $email): bool
     {
         $normalizedEmail = strtolower(trim($email));
-        $allowListedEmails = config('auth_roles.allowlisted_emails', []);
+        $allowListedEmails = $this->allowlistedEmails();
 
         return in_array($normalizedEmail, $allowListedEmails, true);
     }
@@ -15,12 +15,12 @@ class RoleDetectionService
     public function detectUserRole(string $email): ?string
     {
         $normalizedEmail = strtolower(trim($email));
-        $adminEmails = config('auth_roles.admin_emails', []);
+        $adminEmails = $this->adminEmails();
         if (in_array($normalizedEmail, $adminEmails, true)) {
             return 'admin';
         }
 
-        $teacherEmails = config('auth_roles.teacher_emails', []);
+        $teacherEmails = $this->teacherEmails();
         if (in_array($normalizedEmail, $teacherEmails, true)) {
             return 'teacher';
         }
@@ -44,5 +44,53 @@ class RoleDetectionService
             3 => 'student',
             default => null,
         };
+    }
+
+    private function adminEmails(): array
+    {
+        return $this->mergeConfiguredAndRuntimeEmails(
+            config('auth_roles.admin_emails', []),
+            (string) env('ADMIN_EMAILS', '')
+        );
+    }
+
+    private function teacherEmails(): array
+    {
+        return $this->mergeConfiguredAndRuntimeEmails(
+            config('auth_roles.teacher_emails', []),
+            (string) env('TEACHER_EMAILS', '')
+        );
+    }
+
+    private function allowlistedEmails(): array
+    {
+        return array_values(array_unique(array_merge(
+            $this->adminEmails(),
+            $this->teacherEmails(),
+            $this->normalizeEmails((array) config('auth_roles.allowlisted_emails', []))
+        )));
+    }
+
+    private function mergeConfiguredAndRuntimeEmails(array $configured, string $runtime): array
+    {
+        return array_values(array_unique(array_merge(
+            $this->normalizeEmails($configured),
+            $this->parseRoleEmails($runtime)
+        )));
+    }
+
+    private function normalizeEmails(array $emails): array
+    {
+        return array_values(array_unique(array_filter(array_map(
+            static fn (mixed $email): string => strtolower(trim((string) $email, " \t\n\r\0\x0B\"'")),
+            $emails
+        ), static fn (string $email): bool => $email !== '')));
+    }
+
+    private function parseRoleEmails(string $raw): array
+    {
+        $parts = preg_split('/[\s,;]+/', $raw) ?: [];
+
+        return $this->normalizeEmails($parts);
     }
 }
