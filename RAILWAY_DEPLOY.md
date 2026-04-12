@@ -31,6 +31,8 @@ This repository can deploy the Laravel backend to Railway with the root `Dockerf
 - `APP_ENV=production`
 - `APP_DEBUG=false`
 - `APP_URL=https://your-backend-domain.up.railway.app`
+- `FRONTEND_URL=https://your-frontend-domain.vercel.app`
+- `CORS_ALLOWED_ORIGINS=https://your-frontend-domain.vercel.app,http://localhost:5173`
 - `APP_KEY`
 - `LOG_CHANNEL=stderr`
 - `LOG_LEVEL=info`
@@ -58,5 +60,6 @@ This repository can deploy the Laravel backend to Railway with the root `Dockerf
 ## Notes
 
 - Railway health checks should use `/api/health`.
+- If the frontend is on Vercel, make sure the Railway service has `CORS_ALLOWED_ORIGINS` set to your exact Vercel production URL. After changing env vars, redeploy the Railway service so Laravel picks up the new config.
 - Do not run `schema.sql` against a shared non-empty database unless you understand the reset risk, because the file starts with `DROP TABLE IF EXISTS`.
 - If you later replace `schema.sql` with real Laravel migrations, you can switch to `php artisan migrate` during deploys instead.
