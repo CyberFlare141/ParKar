@@ -1,13 +1,13 @@
 # Railway Backend Deploy
 
-This repository can now deploy the Laravel backend to Railway with the root `Dockerfile` and [`railway.json`](./railway.json).
+This repository can deploy the Laravel backend to Railway with the root `Dockerfile` and [`railway.json`](./railway.json).
 
 ## What is ready
 
 - Dockerfile-based Railway build
 - Health check at `/api/health`
-- Pre-deploy schema bootstrap for a brand-new PostgreSQL database
-- Safe no-op schema bootstrap on later deploys once tables already exist
+- Dockerfile-based backend deploy
+- MySQL-compatible Laravel config
 
 ## Important limits
 
@@ -19,10 +19,11 @@ This repository can now deploy the Laravel backend to Railway with the root `Doc
 
 1. Create a Railway service from this repo.
 2. Use the root `Dockerfile`.
-3. Attach a PostgreSQL database.
+3. Attach a MySQL database.
 4. Add a persistent volume if you want uploaded files to survive redeploys.
 5. Set the required environment variables listed below.
-6. Deploy once. The pre-deploy command will import `schema.sql` only if the database is still empty.
+6. Deploy once.
+7. If the MySQL database is empty, import [`schema.sql`](./schema.sql) into it before using the app.
 
 ## Required environment variables
 
@@ -33,8 +34,8 @@ This repository can now deploy the Laravel backend to Railway with the root `Doc
 - `APP_KEY`
 - `LOG_CHANNEL=stderr`
 - `LOG_LEVEL=info`
-- `DB_CONNECTION=pgsql`
-- `DATABASE_URL` or the full `DB_*` set
+- `DB_CONNECTION=mysql`
+- The full `DB_*` set
 - `FILESYSTEM_DISK=public`
 - `MAIL_MAILER`
 - `MAIL_HOST`
@@ -54,13 +55,8 @@ This repository can now deploy the Laravel backend to Railway with the root `Doc
 - `ADMIN_EMAILS`
 - `TEACHER_EMAILS`
 
-## Optional environment variables
-
-- `RAILWAY_SCHEMA_IMPORT=true`
-  Keeps the pre-deploy schema bootstrap enabled. Set it to `false` if you want to manage schema creation manually.
-
 ## Notes
 
-- If the PostgreSQL database already contains your tables, the pre-deploy command skips `schema.sql`.
-- Do not point the app at a shared non-empty database and then force-run `schema.sql`, because the file starts with `DROP TABLE IF EXISTS`.
-- If you later replace `schema.sql` with real Laravel migrations, remove the schema bootstrap step from [`railway.json`](./railway.json).
+- Railway health checks should use `/api/health`.
+- Do not run `schema.sql` against a shared non-empty database unless you understand the reset risk, because the file starts with `DROP TABLE IF EXISTS`.
+- If you later replace `schema.sql` with real Laravel migrations, you can switch to `php artisan migrate` during deploys instead.
