@@ -4,6 +4,7 @@ server {
     root /home/site/wwwroot/public;
     index  index.php index.html index.htm;
     server_name  localhost;
+    client_max_body_size 25M;
     location / {
         try_files $uri $uri/ /index.php?$query_string;
     }
