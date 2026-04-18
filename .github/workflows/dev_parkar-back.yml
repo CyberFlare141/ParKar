@@ -6,7 +6,7 @@ name: Build and deploy PHP app to Azure Web App - ParKar-Back
 env:
   AZURE_WEBAPP_NAME: ParKar-Back
   AZURE_RESOURCE_GROUP: ParKar-Database
-  AZURE_STARTUP_COMMAND: cp /home/site/wwwroot/default /etc/nginx/sites-available/default && service nginx reload
+  AZURE_STARTUP_COMMAND: bash /home/site/wwwroot/docker/azure/startup.sh
 
 on:
   push:
