@@ -21,6 +21,7 @@ export default function GoogleAuthCallbackHandler() {
     const token = params.get("token");
     const user = parseGoogleCallbackUser(params.get("user"));
     const error = params.get("error");
+    const message = params.get("message");
 
     if (token && user) {
       setAuthSession(token, user);
@@ -28,8 +29,13 @@ export default function GoogleAuthCallbackHandler() {
       return;
     }
 
-    if (error === "access_denied") {
-      navigate("/login?error=access_denied", { replace: true });
+    if (error) {
+      const nextParams = new URLSearchParams();
+      nextParams.set("error", error);
+      if (message) {
+        nextParams.set("message", message);
+      }
+      navigate(`/login?${nextParams.toString()}`, { replace: true });
       return;
     }
 
