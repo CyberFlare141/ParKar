@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import client, { resolveBaseUrl } from "../../api/client";
 import { ENDPOINTS } from "../../api/endpoints";
 import { getDashboardPathByRole, setAuthSession } from "../../auth/session";
+import "./Login.css";
 
 const initialValues = {
   email: "",
@@ -36,6 +37,7 @@ export default function Login() {
     const token = params.get("token");
     const user = parseGoogleCallbackUser(params.get("user"));
     const error = params.get("error");
+    const message = params.get("message");
 
     if (token && user) {
       setAuthSession(token, user);
@@ -44,7 +46,13 @@ export default function Login() {
     }
 
     if (error === "access_denied") {
-      setFeedback("Google sign-in was cancelled.");
+      setFeedback(message || "Google sign-in was cancelled.");
+      window.history.replaceState({}, document.title, window.location.pathname);
+      return;
+    }
+
+    if (error === "google_auth_failed") {
+      setFeedback(message || "Google sign-in failed. Please try again.");
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, [navigate]);
@@ -100,112 +108,130 @@ export default function Login() {
   };
 
   return (
-    <section className="min-h-screen bg-gradient-to-br from-slate-100 via-cyan-50 to-emerald-100 px-4 py-10 sm:px-6 lg:px-8">
-      <div className="mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-5xl items-center justify-center">
-        <div className="w-full max-w-md rounded-2xl border border-white/70 bg-white/90 p-6 shadow-[0_24px_70px_-28px_rgba(15,23,42,0.45)] backdrop-blur sm:p-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-700">
-            AUST Parking Portal
-          </p>
-          <h1 className="mt-3 text-3xl font-bold text-slate-900">Log In</h1>
-          <p className="mt-2 text-sm text-slate-600">
-            Enter your university credentials to continue.
+    <section className="login-page">
+      <div className="login-page__glow login-page__glow--teal" />
+      <div className="login-page__glow login-page__glow--green" />
+      <div className="login-shell">
+        <aside className="login-hero">
+          <p className="login-eyebrow">AUST Parking Portal</p>
+          <h1 className="login-title">Return to your campus parking portal.</h1>
+          <p className="login-copy">
+            Sign in with your university account to continue managing permits,
+            documents, notifications, and renewal requests from one place.
           </p>
 
-          <form className="mt-6 space-y-5" onSubmit={handleSubmit} noValidate>
-            <div>
-              <label
-                htmlFor="email"
-                className="mb-1.5 block text-sm font-medium text-slate-700"
-              >
-                University Email Address
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                value={values.email}
-                onChange={handleChange}
-                placeholder="name.dept.id@aust.edu"
-                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
-              />
-              {errors.email ? (
-                <p className="mt-1 text-sm text-rose-600">{errors.email}</p>
-              ) : null}
+          <div className="login-points">
+            <div className="login-point">
+              <span className="login-point__value">01</span>
+              <div>
+                <h2>Use your AUST email</h2>
+                <p>Sign in with the same identity you used during registration.</p>
+              </div>
             </div>
-
-            <div>
-              <label
-                htmlFor="password"
-                className="mb-1.5 block text-sm font-medium text-slate-700"
-              >
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                value={values.password}
-                onChange={handleChange}
-                placeholder="Enter your password"
-                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
-              />
-              {errors.password ? (
-                <p className="mt-1 text-sm text-rose-600">{errors.password}</p>
-              ) : null}
+            <div className="login-point">
+              <span className="login-point__value">02</span>
+              <div>
+                <h2>Google stays available</h2>
+                <p>Continue with Google if your campus account is linked there.</p>
+              </div>
             </div>
+            <div className="login-point">
+              <span className="login-point__value">03</span>
+              <div>
+                <h2>Clearer auth feedback</h2>
+                <p>Login and Google callback issues now show readable messages.</p>
+              </div>
+            </div>
+          </div>
+        </aside>
 
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              {isSubmitting ? "Submitting..." : "Login"}
-            </button>
+        <div className="login-panel">
+          <div className="login-card">
+            <p className="login-card__eyebrow">Welcome back</p>
+            <h1 className="login-card__title">Log In</h1>
+            <p className="login-card__subtitle">
+              Enter your university credentials to continue.
+            </p>
 
-            <button
-              type="button"
-              onClick={() => window.location.assign(googleRedirectUrl)}
-              disabled={isSubmitting}
-              className="flex w-full items-center justify-center gap-3 rounded-xl border border-[#dadce0] bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
-              style={{ fontFamily: '"Google Sans", "Segoe UI", sans-serif' }}
-            >
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 24 24"
-                className="h-5 w-5"
+            <form className="login-form" onSubmit={handleSubmit} noValidate>
+              <div className="login-field">
+                <label htmlFor="email">University Email Address</label>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={values.email}
+                  onChange={handleChange}
+                  placeholder="name.dept.id@aust.edu"
+                />
+                {errors.email ? <p className="login-error">{errors.email}</p> : null}
+              </div>
+
+              <div className="login-field">
+                <label htmlFor="password">Password</label>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  value={values.password}
+                  onChange={handleChange}
+                  placeholder="Enter your password"
+                />
+                {errors.password ? <p className="login-error">{errors.password}</p> : null}
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="login-button login-button--primary"
               >
-                <path
-                  fill="#4285F4"
-                  d="M23.49 12.27c0-.79-.07-1.54-.2-2.27H12v4.29h6.44a5.51 5.51 0 0 1-2.39 3.62v3.01h3.87c2.27-2.09 3.57-5.16 3.57-8.65Z"
-                />
-                <path
-                  fill="#34A853"
-                  d="M12 24c3.24 0 5.96-1.07 7.95-2.91l-3.87-3.01c-1.07.72-2.44 1.15-4.08 1.15-3.13 0-5.78-2.11-6.72-4.96H1.28v3.1A12 12 0 0 0 12 24Z"
-                />
-                <path
-                  fill="#FBBC05"
-                  d="M5.28 14.27A7.2 7.2 0 0 1 4.91 12c0-.79.14-1.56.37-2.27v-3.1H1.28A12 12 0 0 0 0 12c0 1.94.46 3.77 1.28 5.37l4-3.1Z"
-                />
-                <path
-                  fill="#EA4335"
-                  d="M12 4.77c1.77 0 3.35.61 4.59 1.8l3.44-3.44C17.95 1.09 15.23 0 12 0A12 12 0 0 0 1.28 6.63l4 3.1c.94-2.85 3.59-4.96 6.72-4.96Z"
-                />
-              </svg>
-              Continue with Google
-            </button>
-          </form>
+                {isSubmitting ? "Submitting..." : "Login"}
+              </button>
 
-          {feedback ? <p className="mt-4 text-sm text-slate-700">{feedback}</p> : null}
+              <button
+                type="button"
+                onClick={() => window.location.assign(googleRedirectUrl)}
+                disabled={isSubmitting}
+                className="login-button login-button--google"
+              >
+                <svg aria-hidden="true" viewBox="0 0 24 24" className="login-google-icon">
+                  <path
+                    fill="#4285F4"
+                    d="M23.49 12.27c0-.79-.07-1.54-.2-2.27H12v4.29h6.44a5.51 5.51 0 0 1-2.39 3.62v3.01h3.87c2.27-2.09 3.57-5.16 3.57-8.65Z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 24c3.24 0 5.96-1.07 7.95-2.91l-3.87-3.01c-1.07.72-2.44 1.15-4.08 1.15-3.13 0-5.78-2.11-6.72-4.96H1.28v3.1A12 12 0 0 0 12 24Z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.28 14.27A7.2 7.2 0 0 1 4.91 12c0-.79.14-1.56.37-2.27v-3.1H1.28A12 12 0 0 0 0 12c0 1.94.46 3.77 1.28 5.37l4-3.1Z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M12 4.77c1.77 0 3.35.61 4.59 1.8l3.44-3.44C17.95 1.09 15.23 0 12 0A12 12 0 0 0 1.28 6.63l4 3.1c.94-2.85 3.59-4.96 6.72-4.96Z"
+                  />
+                </svg>
+                Continue with Google
+              </button>
+            </form>
 
-          <p className="mt-6 text-center text-sm text-slate-600">
-            New here?{" "}
-            <Link
-              to="/register"
-              className="font-semibold text-cyan-700 underline-offset-2 hover:underline"
-            >
-              Create your account
-            </Link>
-          </p>
+            {feedback ? (
+              <p
+                className={`login-feedback ${
+                  feedback.toLowerCase().includes("successful")
+                    ? "login-feedback--success"
+                    : "login-feedback--error"
+                }`}
+              >
+                {feedback}
+              </p>
+            ) : null}
+
+            <p className="login-switch">
+              New here? <Link to="/register">Create your account</Link>
+            </p>
+          </div>
         </div>
       </div>
     </section>
