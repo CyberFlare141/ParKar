@@ -3,6 +3,11 @@
 
 name: Build and deploy PHP app to Azure Web App - ParKar-Back
 
+env:
+  AZURE_WEBAPP_NAME: ParKar-Back
+  AZURE_RESOURCE_GROUP: ParKar-Database
+  AZURE_STARTUP_COMMAND: cp /home/site/wwwroot/default /etc/nginx/sites-available/default && service nginx reload
+
 on:
   push:
     branches:
@@ -63,10 +68,18 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_A5813FB8FCFF4F5B82FE4F1D0ACED76F }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_889BBC7C1F204999980B8226B0E188C0 }}
 
+      - name: Configure Azure Web App for Laravel
+        run: |
+          az webapp config set \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --name "$AZURE_WEBAPP_NAME" \
+            --linux-fx-version "PHP|8.2" \
+            --startup-file "$AZURE_STARTUP_COMMAND"
+
       - name: 'Deploy to Azure Web App'
         uses: azure/webapps-deploy@v3
         id: deploy-to-webapp
         with:
-          app-name: 'ParKar-Back'
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
           slot-name: 'Production'
           package: .
