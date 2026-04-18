@@ -3,9 +3,9 @@ docker compose down -v
 docker compose up -d --build
 docker compose exec app php artisan key:generate
 
-PostgreSQL now uses database-first import from `schema.sql`.
-When the `postgres_data` volume is empty, Docker imports it automatically.
-If you are switching from an older MySQL setup, remove the old volume with `docker compose down -v` so PostgreSQL can initialize cleanly.
+MySQL now uses database-first import from `schema.sql`.
+When the `mysql_data` volume is empty, Docker imports it automatically.
+If Docker was previously using another database setup, remove the old volume with `docker compose down -v` so MySQL can initialize cleanly.
 
  
 If you change `schema.sql`, rebuild the database with:

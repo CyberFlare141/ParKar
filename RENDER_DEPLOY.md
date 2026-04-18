@@ -65,9 +65,9 @@ Set these in Render from your current backend `.env` values:
 
 ## Database note
 
-This repo uses a database-first setup with PostgreSQL `schema.sql`.
+This repo uses a database-first setup with MySQL `schema.sql`.
 
-Point Render to your PostgreSQL instance with the `DB_*` variables.
+Point Render to your MySQL instance with the `DB_*` variables.
 If you create a new empty database, import `schema.sql` into that database before using the app.
 
 ## After deploy

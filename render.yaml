@@ -25,11 +25,11 @@ services:
       - key: LOG_LEVEL
         value: info
       - key: DB_CONNECTION
-        value: pgsql
+        value: mysql
       - key: DB_HOST
         sync: false
       - key: DB_PORT
-        value: "5432"
+        value: "3306"
       - key: DB_DATABASE
         sync: false
       - key: DB_USERNAME

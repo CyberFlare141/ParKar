@@ -9,14 +9,14 @@ services:
     environment:
       - AI_SERVICE_URL=http://ai:5001
       - AI_SERVICE_TIMEOUT=30
-      - DB_CONNECTION=pgsql
-      - DB_HOST=postgres
-      - DB_PORT=5432
+      - DB_CONNECTION=mysql
+      - DB_HOST=mysql
+      - DB_PORT=3306
       - DB_DATABASE=ParKar
-      - DB_USERNAME=postgres
+      - DB_USERNAME=root
       - DB_PASSWORD=ParKar
     depends_on:
-      - postgres
+      - mysql
       - mailpit
       - ai
     networks:
@@ -34,15 +34,14 @@ services:
     networks:
       - parkar
 
-  postgres:
-    image: postgres:16-alpine
+  mysql:
+    image: mysql:8.0
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ParKar
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ParKar
+      MYSQL_DATABASE: ParKar
+      MYSQL_ROOT_PASSWORD: ParKar
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - mysql_data:/var/lib/mysql
       - ./schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
     networks:
       - parkar
@@ -61,7 +60,7 @@ services:
     ports:
       - "18081:8080"
     depends_on:
-      - postgres
+      - mysql
     networks:
       - parkar
 
@@ -88,7 +87,7 @@ services:
       - parkar
 
 volumes:
-  postgres_data:
+  mysql_data:
   app_vendor:
 
 networks:
