@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import client, { resolveBaseUrl } from "../../api/client";
 import { ENDPOINTS } from "../../api/endpoints";
 import { setAuthSession } from "../../auth/session";
+import "./Register.css";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -30,6 +30,14 @@ const initialValues = {
   confirmPassword: "",
 };
 
+function getApiErrorMessage(error, fallbackMessage) {
+  const firstFieldError = error?.response?.data?.errors
+    ? Object.values(error.response.data.errors)?.[0]?.[0]
+    : null;
+
+  return firstFieldError || error?.response?.data?.message || fallbackMessage;
+}
+
 export default function Register() {
   const navigate = useNavigate();
   const [values, setValues] = useState(initialValues);
@@ -46,6 +54,7 @@ export default function Register() {
     const token = params.get("token");
     const user = parseGoogleCallbackUser(params.get("user"));
     const error = params.get("error");
+    const message = params.get("message");
 
     if (token && user) {
       setAuthSession(token, user);
@@ -54,7 +63,13 @@ export default function Register() {
     }
 
     if (error === "access_denied") {
-      setFeedback("Google sign-in was cancelled.");
+      setFeedback(message || "Google sign-in was cancelled.");
+      window.history.replaceState({}, document.title, window.location.pathname);
+      return;
+    }
+
+    if (error === "google_auth_failed") {
+      setFeedback(message || "Google sign-in failed. Please try again.");
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, [navigate]);
@@ -82,6 +97,8 @@ export default function Register() {
       nextErrors.email = "University email address is required.";
     } else if (!emailPattern.test(values.email.trim())) {
       nextErrors.email = "Enter a valid email address.";
+    } else if (!values.email.trim().toLowerCase().endsWith("@aust.edu")) {
+      nextErrors.email = "Use your AUST university email address.";
     }
 
     if (!values.phone.trim()) {
@@ -90,6 +107,8 @@ export default function Register() {
 
     if (!values.password.trim()) {
       nextErrors.password = "Password is required.";
+    } else if (values.password.length < 8) {
+      nextErrors.password = "Password must be at least 8 characters.";
     }
 
     if (!values.confirmPassword.trim()) {
@@ -125,8 +144,10 @@ export default function Register() {
       setStep("otp");
       setFeedback(response.data.message || "Registration complete. OTP sent.");
     } catch (error) {
-      const payload = error?.response?.data;
-      const message = payload?.message || "Registration failed. Please try again.";
+      const message = getApiErrorMessage(
+        error,
+        "Registration failed. Please try again."
+      );
       setFeedback(message);
     } finally {
       setIsSubmitting(false);
@@ -153,8 +174,10 @@ export default function Register() {
       setFeedback("Account verified successfully.");
       navigate("/", { replace: true });
     } catch (error) {
-      const message =
-        error?.response?.data?.message || "OTP verification failed. Please try again.";
+      const message = getApiErrorMessage(
+        error,
+        "OTP verification failed. Please try again."
+      );
       setFeedback(message);
     } finally {
       setIsSubmitting(false);
@@ -171,7 +194,7 @@ export default function Register() {
       setChallengeId(response.data.challenge_id);
       setFeedback(response.data.message || "OTP resent.");
     } catch (error) {
-      const message = error?.response?.data?.message || "Failed to resend OTP.";
+      const message = getApiErrorMessage(error, "Failed to resend OTP.");
       setFeedback(message);
     } finally {
       setIsSubmitting(false);
@@ -179,252 +202,252 @@ export default function Register() {
   };
 
   return (
-    <section className="min-h-screen bg-gradient-to-br from-slate-100 via-cyan-50 to-emerald-100 px-4 py-10 sm:px-6 lg:px-8">
-      <div className="mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-5xl items-center justify-center">
-        <div className="w-full max-w-xl rounded-2xl border border-white/70 bg-white/90 p-6 shadow-[0_24px_70px_-28px_rgba(15,23,42,0.45)] backdrop-blur sm:p-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-700">
-            AUST Parking Portal
-          </p>
-          <h1 className="mt-3 text-3xl font-bold text-slate-900">
-            Create Account
-          </h1>
-          <p className="mt-2 text-sm text-slate-600">
-            Register with your student information.
+    <section className="register-page">
+      <div className="register-page__glow register-page__glow--teal" />
+      <div className="register-page__glow register-page__glow--blue" />
+      <div className="register-shell">
+        <aside className="register-hero">
+          <Link to="/" className="register-back">
+            Back to home
+          </Link>
+          <p className="register-eyebrow">AUST Parking Portal</p>
+          <h1 className="register-title">Create your campus parking account.</h1>
+          <p className="register-copy">
+            Join the same streamlined experience you see on the home page with
+            fast signup, OTP verification, and instant access to your dashboard.
           </p>
 
-          {step === "register" ? (
-            <form className="mt-6 space-y-5" onSubmit={handleSubmit} noValidate>
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                <div>
-                  <label
-                  htmlFor="id"
-                  className="mb-1.5 block text-sm font-medium text-slate-700"
-                >
-                  ID
-                </label>
-                <input
-                  id="id"
-                  name="id"
-                  type="text"
-                  value={values.id}
-                  onChange={handleChange}
-                  placeholder="Enter your ID"
-                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
-                />
-                  {errors.id ? (
-                    <p className="mt-1 text-sm text-rose-600">{errors.id}</p>
-                  ) : null}
+          <div className="register-highlights">
+            <div className="register-highlight">
+              <span className="register-highlight__value">01</span>
+              <div>
+                <h2>Use your AUST identity</h2>
+                <p>Student emails like `name.department.id@aust.edu` are supported.</p>
+              </div>
+            </div>
+            <div className="register-highlight">
+              <span className="register-highlight__value">02</span>
+              <div>
+                <h2>Verify in one step</h2>
+                <p>An OTP is sent after signup so the account is activated securely.</p>
+              </div>
+            </div>
+            <div className="register-highlight">
+              <span className="register-highlight__value">03</span>
+              <div>
+                <h2>Keep the process clear</h2>
+                <p>
+                  Real validation messages are shown now, including duplicate email
+                  and password issues.
+                </p>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <div className="register-panel">
+          <div className="register-card">
+            <p className="register-card__eyebrow">
+              {step === "register" ? "New account" : "Verify account"}
+            </p>
+            <h2 className="register-card__title">
+              {step === "register" ? "Create Account" : "Enter OTP"}
+            </h2>
+            <p className="register-card__subtitle">
+              {step === "register"
+                ? "Use your university details to start your ParKar access."
+                : "Check your inbox for the 6-digit code we just sent."}
+            </p>
+
+            {step === "register" ? (
+              <form className="register-form" onSubmit={handleSubmit} noValidate>
+                <div className="register-grid register-grid--two">
+                  <div className="register-field">
+                    <label htmlFor="id">Student ID</label>
+                    <input
+                      id="id"
+                      name="id"
+                      type="text"
+                      value={values.id}
+                      onChange={handleChange}
+                      placeholder="20230104141"
+                    />
+                    {errors.id ? <p className="register-error">{errors.id}</p> : null}
+                  </div>
+
+                  <div className="register-field">
+                    <label htmlFor="fullName">Full Name</label>
+                    <input
+                      id="fullName"
+                      name="fullName"
+                      type="text"
+                      value={values.fullName}
+                      onChange={handleChange}
+                      placeholder="Masrafi Iqbal"
+                    />
+                    {errors.fullName ? (
+                      <p className="register-error">{errors.fullName}</p>
+                    ) : null}
+                  </div>
                 </div>
 
-                <div>
-                  <label
-                    htmlFor="fullName"
-                    className="mb-1.5 block text-sm font-medium text-slate-700"
-                  >
-                    Full Name
-                  </label>
+                <div className="register-field">
+                  <label htmlFor="email">University Email Address</label>
                   <input
-                    id="fullName"
-                    name="fullName"
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={values.email}
+                    onChange={handleChange}
+                    placeholder="name.department.id@aust.edu"
+                  />
+                  <p className="register-hint">
+                    Only AUST email accounts can register here.
+                  </p>
+                  {errors.email ? <p className="register-error">{errors.email}</p> : null}
+                </div>
+
+                <div className="register-field">
+                  <label htmlFor="phone">Phone Number</label>
+                  <input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    inputMode="numeric"
+                    value={values.phone}
+                    onChange={handleChange}
+                    placeholder="01XXXXXXXXX"
+                  />
+                  {errors.phone ? <p className="register-error">{errors.phone}</p> : null}
+                </div>
+
+                <div className="register-grid register-grid--two">
+                  <div className="register-field">
+                    <label htmlFor="password">Password</label>
+                    <input
+                      id="password"
+                      name="password"
+                      type="password"
+                      value={values.password}
+                      onChange={handleChange}
+                      placeholder="Minimum 8 characters"
+                    />
+                    {errors.password ? (
+                      <p className="register-error">{errors.password}</p>
+                    ) : null}
+                  </div>
+
+                  <div className="register-field">
+                    <label htmlFor="confirmPassword">Confirm Password</label>
+                    <input
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      type="password"
+                      value={values.confirmPassword}
+                      onChange={handleChange}
+                      placeholder="Repeat your password"
+                    />
+                    {errors.confirmPassword ? (
+                      <p className="register-error">{errors.confirmPassword}</p>
+                    ) : null}
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="register-button register-button--primary"
+                >
+                  {isSubmitting ? "Submitting..." : "Create Account"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => window.location.assign(googleRedirectUrl)}
+                  disabled={isSubmitting}
+                  className="register-button register-button--google"
+                >
+                  <svg aria-hidden="true" viewBox="0 0 24 24" className="register-google-icon">
+                    <path
+                      fill="#4285F4"
+                      d="M23.49 12.27c0-.79-.07-1.54-.2-2.27H12v4.29h6.44a5.51 5.51 0 0 1-2.39 3.62v3.01h3.87c2.27-2.09 3.57-5.16 3.57-8.65Z"
+                    />
+                    <path
+                      fill="#34A853"
+                      d="M12 24c3.24 0 5.96-1.07 7.95-2.91l-3.87-3.01c-1.07.72-2.44 1.15-4.08 1.15-3.13 0-5.78-2.11-6.72-4.96H1.28v3.1A12 12 0 0 0 12 24Z"
+                    />
+                    <path
+                      fill="#FBBC05"
+                      d="M5.28 14.27A7.2 7.2 0 0 1 4.91 12c0-.79.14-1.56.37-2.27v-3.1H1.28A12 12 0 0 0 0 12c0 1.94.46 3.77 1.28 5.37l4-3.1Z"
+                    />
+                    <path
+                      fill="#EA4335"
+                      d="M12 4.77c1.77 0 3.35.61 4.59 1.8l3.44-3.44C17.95 1.09 15.23 0 12 0A12 12 0 0 0 1.28 6.63l4 3.1c.94-2.85 3.59-4.96 6.72-4.96Z"
+                    />
+                  </svg>
+                  Continue with Google
+                </button>
+              </form>
+            ) : (
+              <form className="register-form" onSubmit={handleVerifyOtp} noValidate>
+                <div className="register-field">
+                  <label htmlFor="otp">Enter 6-digit OTP</label>
+                  <input
+                    id="otp"
+                    name="otp"
                     type="text"
-                    value={values.fullName}
-                    onChange={handleChange}
-                    placeholder="Enter your full name"
-                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
+                    inputMode="numeric"
+                    maxLength={6}
+                    value={otp}
+                    onChange={(event) => {
+                      const cleaned = event.target.value.replace(/\D/g, "");
+                      setOtp(cleaned);
+                      setFeedback("");
+                    }}
+                    placeholder="123456"
                   />
-                  {errors.fullName ? (
-                    <p className="mt-1 text-sm text-rose-600">{errors.fullName}</p>
-                  ) : null}
-                </div>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="email"
-                  className="mb-1.5 block text-sm font-medium text-slate-700"
-                >
-                  University Email Address
-                </label>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={values.email}
-                  onChange={handleChange}
-                  placeholder="name.id@aust.edu"
-                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
-                />
-                {errors.email ? (
-                  <p className="mt-1 text-sm text-rose-600">{errors.email}</p>
-                ) : null}
-              </div>
-
-              <div>
-                <label
-                  htmlFor="phone"
-                  className="mb-1.5 block text-sm font-medium text-slate-700"
-                >
-                  Phone Number
-                </label>
-                <input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  inputMode="numeric"
-                  value={values.phone}
-                  onChange={handleChange}
-                  placeholder="Enter phone number"
-                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
-                />
-                {errors.phone ? (
-                  <p className="mt-1 text-sm text-rose-600">{errors.phone}</p>
-                ) : null}
-              </div>
-
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                <div>
-                  <label
-                    htmlFor="password"
-                    className="mb-1.5 block text-sm font-medium text-slate-700"
-                  >
-                    Password
-                  </label>
-                  <input
-                    id="password"
-                    name="password"
-                    type="password"
-                    value={values.password}
-                    onChange={handleChange}
-                    placeholder="Create a password"
-                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
-                  />
-                  {errors.password ? (
-                    <p className="mt-1 text-sm text-rose-600">{errors.password}</p>
-                  ) : null}
                 </div>
 
-                <div>
-                  <label
-                    htmlFor="confirmPassword"
-                    className="mb-1.5 block text-sm font-medium text-slate-700"
-                  >
-                    Confirm Password
-                  </label>
-                  <input
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    type="password"
-                    value={values.confirmPassword}
-                    onChange={handleChange}
-                    placeholder="Re-enter your password"
-                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
-                  />
-                  {errors.confirmPassword ? (
-                    <p className="mt-1 text-sm text-rose-600">
-                      {errors.confirmPassword}
-                    </p>
-                  ) : null}
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                {isSubmitting ? "Submitting..." : "Sign Up"}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => window.location.assign(googleRedirectUrl)}
-                disabled={isSubmitting}
-                className="flex w-full items-center justify-center gap-3 rounded-xl border border-[#dadce0] bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
-                style={{ fontFamily: '"Google Sans", "Segoe UI", sans-serif' }}
-              >
-                <svg
-                  aria-hidden="true"
-                  viewBox="0 0 24 24"
-                  className="h-5 w-5"
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="register-button register-button--primary"
                 >
-                  <path
-                    fill="#4285F4"
-                    d="M23.49 12.27c0-.79-.07-1.54-.2-2.27H12v4.29h6.44a5.51 5.51 0 0 1-2.39 3.62v3.01h3.87c2.27-2.09 3.57-5.16 3.57-8.65Z"
-                  />
-                  <path
-                    fill="#34A853"
-                    d="M12 24c3.24 0 5.96-1.07 7.95-2.91l-3.87-3.01c-1.07.72-2.44 1.15-4.08 1.15-3.13 0-5.78-2.11-6.72-4.96H1.28v3.1A12 12 0 0 0 12 24Z"
-                  />
-                  <path
-                    fill="#FBBC05"
-                    d="M5.28 14.27A7.2 7.2 0 0 1 4.91 12c0-.79.14-1.56.37-2.27v-3.1H1.28A12 12 0 0 0 0 12c0 1.94.46 3.77 1.28 5.37l4-3.1Z"
-                  />
-                  <path
-                    fill="#EA4335"
-                    d="M12 4.77c1.77 0 3.35.61 4.59 1.8l3.44-3.44C17.95 1.09 15.23 0 12 0A12 12 0 0 0 1.28 6.63l4 3.1c.94-2.85 3.59-4.96 6.72-4.96Z"
-                  />
-                </svg>
-                Sign Up with Google
-              </button>
-            </form>
-          ) : (
-            <form className="mt-6 space-y-5" onSubmit={handleVerifyOtp} noValidate>
-              <div>
-                <label
-                  htmlFor="otp"
-                  className="mb-1.5 block text-sm font-medium text-slate-700"
+                  {isSubmitting ? "Verifying..." : "Verify OTP"}
+                </button>
+
+                <button
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={handleResendOtp}
+                  className="register-button register-button--secondary"
                 >
-                  Enter 6-digit OTP
-                </label>
-                <input
-                  id="otp"
-                  name="otp"
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={6}
-                  value={otp}
-                  onChange={(event) => {
-                    const cleaned = event.target.value.replace(/\D/g, "");
-                    setOtp(cleaned);
-                    setFeedback("");
-                  }}
-                  placeholder="123456"
-                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
-                />
-              </div>
+                  Resend OTP
+                </button>
+              </form>
+            )}
 
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
+            {feedback ? (
+              <p
+                className={`register-feedback ${
+                  feedback.toLowerCase().includes("successful") ||
+                  feedback.toLowerCase().includes("verified") ||
+                  feedback.toLowerCase().includes("sent")
+                    ? "register-feedback--success"
+                    : "register-feedback--error"
+                }`}
               >
-                {isSubmitting ? "Verifying..." : "Verify OTP"}
-              </button>
+                {feedback}
+              </p>
+            ) : null}
 
-              <button
-                type="button"
-                disabled={isSubmitting}
-                onClick={handleResendOtp}
-                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                Resend OTP
-              </button>
-            </form>
-          )}
-
-          {feedback ? <p className="mt-4 text-sm text-slate-700">{feedback}</p> : null}
-
-          <p className="mt-6 text-center text-sm text-slate-600">
-            Already have an account?{" "}
-            <Link
-              to="/login"
-              className="font-semibold text-cyan-700 underline-offset-2 hover:underline"
-            >
-              Back to Login
-            </Link>
-          </p>
+            <p className="register-switch">
+              Already have an account?{" "}
+              <Link to="/login">Back to Login</Link>
+            </p>
+          </div>
         </div>
       </div>
     </section>
   );
-} 
+}

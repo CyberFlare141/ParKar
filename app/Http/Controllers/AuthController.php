@@ -338,45 +338,51 @@ class AuthController extends Controller
         if ($request->query('error') === 'access_denied') {
             return $this->redirectToFrontendLogin([
                 'error' => 'access_denied',
+                'message' => 'Google sign-in was cancelled.',
             ]);
         }
 
         try {
             $googleUser = Socialite::driver('google')->user();
         } catch (InvalidStateException) {
-            return response()->json([
-                'error' => 'Invalid OAuth state.',
-            ], 422);
+            return $this->redirectToFrontendLogin([
+                'error' => 'google_auth_failed',
+                'message' => 'Invalid OAuth state. Please try again.',
+            ]);
         } catch (\Throwable $exception) {
             Log::error('Google OAuth callback failed.', [
                 'message' => $exception->getMessage(),
                 'path' => $request->path(),
             ]);
 
-            return response()->json([
-                'error' => 'Google authentication failed.',
-            ], 500);
+            return $this->redirectToFrontendLogin([
+                'error' => 'google_auth_failed',
+                'message' => 'Google authentication failed.',
+            ]);
         }
 
         $email = strtolower(trim((string) $googleUser->getEmail()));
         if ($email === '') {
-            return response()->json([
-                'error' => 'Google account did not return a usable email address.',
-            ], 422);
+            return $this->redirectToFrontendLogin([
+                'error' => 'google_auth_failed',
+                'message' => 'Google account did not return a usable email address.',
+            ]);
         }
 
         if (!str_ends_with($email, '@aust.edu') && !$this->roleDetectionService->isAllowListedEmail($email)) {
-            return response()->json([
-                'error' => 'Only @aust.edu accounts allowed.',
-            ], 403);
+            return $this->redirectToFrontendLogin([
+                'error' => 'google_auth_failed',
+                'message' => 'Only @aust.edu accounts allowed.',
+            ]);
         }
 
         try {
             $user = $this->googleAuthService->findOrCreate($googleUser);
         } catch (GoogleAuthException $exception) {
-            return response()->json([
-                'error' => $exception->getMessage(),
-            ], $exception->status());
+            return $this->redirectToFrontendLogin([
+                'error' => 'google_auth_failed',
+                'message' => $exception->getMessage(),
+            ]);
         }
 
         $this->syncUserRoleFromEmail($user);
