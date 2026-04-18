@@ -94,11 +94,9 @@ export default function Register() {
     }
 
     if (!values.email.trim()) {
-      nextErrors.email = "University email address is required.";
+      nextErrors.email = "Email address is required.";
     } else if (!emailPattern.test(values.email.trim())) {
       nextErrors.email = "Enter a valid email address.";
-    } else if (!values.email.trim().toLowerCase().endsWith("@aust.edu")) {
-      nextErrors.email = "Use your AUST university email address.";
     }
 
     if (!values.phone.trim()) {
@@ -210,7 +208,7 @@ export default function Register() {
           <Link to="/" className="register-back">
             Back to home
           </Link>
-          <p className="register-eyebrow">AUST Parking Portal</p>
+          <p className="register-eyebrow">ParKar Portal</p>
           <h1 className="register-title">Create your campus parking account.</h1>
           <p className="register-copy">
             Join the same streamlined experience you see on the home page with
@@ -221,8 +219,8 @@ export default function Register() {
             <div className="register-highlight">
               <span className="register-highlight__value">01</span>
               <div>
-                <h2>Use your AUST identity</h2>
-                <p>Student emails like `name.department.id@aust.edu` are supported.</p>
+                <h2>Use any email</h2>
+                <p>Gmail and other regular email accounts can register now.</p>
               </div>
             </div>
             <div className="register-highlight">
@@ -255,7 +253,7 @@ export default function Register() {
             </h2>
             <p className="register-card__subtitle">
               {step === "register"
-                ? "Use your university details to start your ParKar access."
+                ? "Use your details to start your ParKar access."
                 : "Check your inbox for the 6-digit code we just sent."}
             </p>
 
@@ -292,17 +290,17 @@ export default function Register() {
                 </div>
 
                 <div className="register-field">
-                  <label htmlFor="email">University Email Address</label>
+                  <label htmlFor="email">Email Address</label>
                   <input
                     id="email"
                     name="email"
                     type="email"
                     value={values.email}
                     onChange={handleChange}
-                    placeholder="name.department.id@aust.edu"
+                    placeholder="yourname@gmail.com"
                   />
                   <p className="register-hint">
-                    Only AUST email accounts can register here.
+                    Use the email address you want to sign in with.
                   </p>
                   {errors.email ? <p className="register-error">{errors.email}</p> : null}
                 </div>

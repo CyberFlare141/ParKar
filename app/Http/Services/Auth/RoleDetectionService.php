@@ -25,7 +25,7 @@ class RoleDetectionService
             return 'teacher';
         }
 
-        if (!$this->isAllowListedEmail($normalizedEmail) && !str_ends_with($normalizedEmail, '@aust.edu')) {
+        if (!filter_var($normalizedEmail, FILTER_VALIDATE_EMAIL)) {
             return null;
         }
 
@@ -39,11 +39,15 @@ class RoleDetectionService
             static fn (string $segment): bool => trim($segment) !== ''
         ));
 
-        return match (count($segments)) {
-            2 => 'teacher',
-            3 => 'student',
-            default => null,
-        };
+        if (str_ends_with($normalizedEmail, '@aust.edu')) {
+            return match (count($segments)) {
+                2 => 'teacher',
+                3 => 'student',
+                default => 'student',
+            };
+        }
+
+        return 'student';
     }
 
     private function adminEmails(): array

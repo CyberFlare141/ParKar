@@ -34,8 +34,8 @@ class RoleDetectionServiceTest extends TestCase
         $this->assertSame('admin', $this->service->detectUserRole('admin@example.com'));
     }
 
-    public function test_rejects_unknown_non_aust_email(): void
+    public function test_defaults_unknown_non_aust_email_to_student(): void
     {
-        $this->assertNull($this->service->detectUserRole('visitor@example.com'));
+        $this->assertSame('student', $this->service->detectUserRole('visitor@example.com'));
     }
 }

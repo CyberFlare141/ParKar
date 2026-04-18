@@ -48,13 +48,6 @@ class AuthController extends Controller
         $email = strtolower(trim((string) $payload['email']));
         $name = $payload['name'] ?? $payload['fullName'] ?? '';
         $universityId = $payload['university_id'] ?? $payload['studentId'] ?? null;
-        $isAllowListedEmail = $this->roleDetectionService->isAllowListedEmail($email);
-        if (!str_ends_with($email, '@aust.edu') && !$isAllowListedEmail) {
-            throw ValidationException::withMessages([
-                'email' => ['Only @aust.edu emails are allowed unless the address is listed in ADMIN_EMAILS/TEACHER_EMAILS.'],
-            ]);
-        }
-
         $detectedRole = $this->detectUserRoleOrFail($email);
 
         if (($payload['otp_channel'] ?? 'email') === 'phone' && empty($payload['phone'])) {
@@ -369,13 +362,6 @@ class AuthController extends Controller
             ]);
         }
 
-        if (!str_ends_with($email, '@aust.edu') && !$this->roleDetectionService->isAllowListedEmail($email)) {
-            return $this->redirectToFrontendLogin([
-                'error' => 'google_auth_failed',
-                'message' => 'Only @aust.edu accounts allowed.',
-            ]);
-        }
-
         try {
             $user = $this->googleAuthService->findOrCreate($googleUser);
         } catch (GoogleAuthException $exception) {
@@ -429,12 +415,6 @@ class AuthController extends Controller
             ], 422);
         }
 
-        if (!str_ends_with($email, '@aust.edu') && !$this->roleDetectionService->isAllowListedEmail($email)) {
-            return response()->json([
-                'message' => 'Only @aust.edu accounts allowed.',
-            ], 403);
-        }
-
         /** @var User $user */
         $user = $request->user();
 
@@ -470,7 +450,7 @@ class AuthController extends Controller
         $role = $this->roleDetectionService->detectUserRole($email);
         if ($role === null) {
             throw ValidationException::withMessages([
-                'email' => ['Unable to determine user role from email format.'],
+                'email' => ['Enter a valid email address.'],
             ]);
         }
 

@@ -68,7 +68,7 @@ export default function Login() {
     const nextErrors = {};
 
     if (!values.email.trim()) {
-      nextErrors.email = "University email address is required.";
+      nextErrors.email = "Email address is required.";
     }
 
     if (!values.password.trim()) {
@@ -113,7 +113,7 @@ export default function Login() {
       <div className="login-page__glow login-page__glow--green" />
       <div className="login-shell">
         <aside className="login-hero">
-          <p className="login-eyebrow">AUST Parking Portal</p>
+          <p className="login-eyebrow">ParKar Portal</p>
           <h1 className="login-title">Return to your campus parking portal.</h1>
           <p className="login-copy">
             Sign in with your university account to continue managing permits,
@@ -124,8 +124,8 @@ export default function Login() {
             <div className="login-point">
               <span className="login-point__value">01</span>
               <div>
-                <h2>Use your AUST email</h2>
-                <p>Sign in with the same identity you used during registration.</p>
+                <h2>Use your email</h2>
+                <p>Sign in with the same email address you used during registration.</p>
               </div>
             </div>
             <div className="login-point">
@@ -150,19 +150,19 @@ export default function Login() {
             <p className="login-card__eyebrow">Welcome back</p>
             <h1 className="login-card__title">Log In</h1>
             <p className="login-card__subtitle">
-              Enter your university credentials to continue.
+              Enter your account credentials to continue.
             </p>
 
             <form className="login-form" onSubmit={handleSubmit} noValidate>
               <div className="login-field">
-                <label htmlFor="email">University Email Address</label>
+                <label htmlFor="email">Email Address</label>
                 <input
                   id="email"
                   name="email"
                   type="email"
                   value={values.email}
                   onChange={handleChange}
-                  placeholder="name.dept.id@aust.edu"
+                  placeholder="yourname@gmail.com"
                 />
                 {errors.email ? <p className="login-error">{errors.email}</p> : null}
               </div>
