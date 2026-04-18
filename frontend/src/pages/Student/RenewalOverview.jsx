@@ -3,6 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import client from "../../api/client";
 import { ENDPOINTS } from "../../api/endpoints";
 import { clearAuthSession, getAuthUser } from "../../auth/session";
+import PaginationControls from "../../components/PaginationControls";
+import useClientPagination from "../../components/useClientPagination";
 import {
   getCombinedStudentApplications,
   getRenewalAlertClass,
@@ -55,6 +57,17 @@ function NavigationPill({ to, label, onClick }) {
 export default function RenewalOverview() {
   const navigate = useNavigate();
   const authUser = getAuthUser();
+  const role = String(authUser?.role || "student").toLowerCase();
+  const isTeacher = role === "teacher";
+  const dashboardEndpoint = isTeacher ? ENDPOINTS.TEACHER_DASHBOARD : ENDPOINTS.STUDENT_DASHBOARD;
+  const dashboardPath = isTeacher ? "/teacher/dashboard" : "/student/dashboard";
+  const applicationsPath = isTeacher ? "/teacher/dashboard" : "/student/history";
+  const renewPathPrefix = isTeacher ? "/teacher/renew" : "/student/renew";
+  const portalLabel = isTeacher ? "Faculty Renewal" : "Student Renewal";
+  const heroTitle = isTeacher ? "Renew Faculty Application" : "Renew Application";
+  const introText = isTeacher
+    ? "Choose an approved faculty application to renew. Renewal becomes available only after approval and follows the same 6-month validity cycle."
+    : "Choose an approved application to renew. Pending applications cannot be renewed yet because renewal starts only after approval and the 6-month validity window begins from the approved record.";
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -67,7 +80,7 @@ export default function RenewalOverview() {
         setLoading(true);
         setError("");
 
-        const response = await client.get(ENDPOINTS.STUDENT_DASHBOARD, {
+        const response = await client.get(dashboardEndpoint, {
           skipAuthRedirect: true,
         });
 
@@ -93,10 +106,12 @@ export default function RenewalOverview() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [dashboardEndpoint]);
 
-  const baseApplications =
-    dashboard?.application_history || dashboard?.recent_applications || [];
+  const baseApplications = useMemo(
+    () => dashboard?.application_history || dashboard?.recent_applications || [],
+    [dashboard],
+  );
   const applications = useMemo(
     () => getCombinedStudentApplications(authUser?.id, baseApplications),
     [authUser?.id, baseApplications],
@@ -113,6 +128,26 @@ export default function RenewalOverview() {
       ),
     [applications],
   );
+  const {
+    currentPage: renewablePage,
+    pageSize: renewablePageSize,
+    paginatedItems: paginatedRenewableApplications,
+    setCurrentPage: setRenewablePage,
+    totalItems: totalRenewableApplications,
+    totalPages: totalRenewablePages,
+  } = useClientPagination(renewableApplications, {
+    pageSize: 3,
+  });
+  const {
+    currentPage: pendingPage,
+    pageSize: pendingPageSize,
+    paginatedItems: paginatedPendingApplications,
+    setCurrentPage: setPendingPage,
+    totalItems: totalPendingApplications,
+    totalPages: totalPendingPages,
+  } = useClientPagination(pendingApplications, {
+    pageSize: 4,
+  });
 
   return (
     <div className="student-renew-overview-page">
@@ -121,24 +156,22 @@ export default function RenewalOverview() {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="space-y-3">
               <span className="inline-flex items-center rounded-full border border-teal-400/25 bg-teal-400/10 px-4 py-1.5 text-[0.72rem] font-semibold uppercase tracking-[0.24em] text-teal-300">
-                Student Renewal
+                {portalLabel}
               </span>
               <div>
                 <h1 className="text-4xl font-semibold leading-tight text-white sm:text-5xl">
-                  Renew Application
+                  {heroTitle}
                 </h1>
                 <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-300/80 sm:text-base">
-                  Choose an approved application to renew. Pending applications cannot be
-                  renewed yet because renewal starts only after approval and the 6-month
-                  validity window begins from the approved record.
+                  {introText}
                 </p>
               </div>
             </div>
 
             <div className="flex flex-wrap gap-3">
-              <NavigationPill to="/student/dashboard" label="Dashboard" />
+              <NavigationPill to={dashboardPath} label="Dashboard" />
               <NavigationPill to="/profile" label="Profile" />
-              <NavigationPill to="/student/history" label="Applications" />
+              <NavigationPill to={applicationsPath} label="Applications" />
               <NavigationPill
                 label="Logout"
                 onClick={() => {
@@ -165,7 +198,7 @@ export default function RenewalOverview() {
           </section>
         ) : renewableApplications.length ? (
           <section className="space-y-4">
-            {renewableApplications.map((application) => {
+            {paginatedRenewableApplications.map((application) => {
               const renewalMeta = getRenewalMeta(application, authUser?.id);
 
               return (
@@ -233,7 +266,7 @@ export default function RenewalOverview() {
 
                   <div className="mt-5">
                     <Link
-                      to={`/student/renew/${application.id}`}
+                      to={`${renewPathPrefix}/${application.id}`}
                       className="inline-flex items-center justify-center rounded-full bg-teal-400 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-white"
                     >
                       Open Renewal Flow
@@ -242,6 +275,14 @@ export default function RenewalOverview() {
                 </article>
               );
             })}
+            <PaginationControls
+              currentPage={renewablePage}
+              itemLabel="renewable applications"
+              onPageChange={setRenewablePage}
+              pageSize={renewablePageSize}
+              totalItems={totalRenewableApplications}
+              totalPages={totalRenewablePages}
+            />
           </section>
         ) : (
           <section className="student-renew-overview-panel">
@@ -260,7 +301,7 @@ export default function RenewalOverview() {
 
               {pendingApplications.length ? (
                 <div className="mt-5 space-y-3">
-                  {pendingApplications.map((application) => (
+                  {paginatedPendingApplications.map((application) => (
                     <div
                       key={application.id}
                       className="rounded-2xl border border-amber-300/20 bg-amber-400/10 px-4 py-4"
@@ -275,7 +316,7 @@ export default function RenewalOverview() {
                           </p>
                         </div>
                         <Link
-                          to="/student/history"
+                          to={applicationsPath}
                           className="rounded-full border border-amber-200/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-amber-100 transition hover:bg-white/10"
                         >
                           View Application
@@ -283,6 +324,14 @@ export default function RenewalOverview() {
                       </div>
                     </div>
                   ))}
+                  <PaginationControls
+                    currentPage={pendingPage}
+                    itemLabel="pending applications"
+                    onPageChange={setPendingPage}
+                    pageSize={pendingPageSize}
+                    totalItems={totalPendingApplications}
+                    totalPages={totalPendingPages}
+                  />
                 </div>
               ) : null}
             </div>

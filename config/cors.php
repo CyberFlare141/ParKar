@@ -1,5 +1,15 @@
 <?php
 
+$configuredOrigins = array_values(array_filter(array_map(
+    static fn ($origin) => trim((string) $origin),
+    explode(',', (string) env('CORS_ALLOWED_ORIGINS', ''))
+)));
+
+$defaultOrigins = [
+    'http://localhost:5173',
+    'https://par-kar.vercel.app',
+];
+
 return [
 
     /*
@@ -19,9 +29,11 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['*'],
+    'allowed_origins' => $configuredOrigins !== [] ? $configuredOrigins : $defaultOrigins,
 
-    'allowed_origins_patterns' => [],
+    'allowed_origins_patterns' => [
+        '/^https:\/\/par-kar.*\.vercel\.app$/',
+    ],
 
     'allowed_headers' => ['*'],
 

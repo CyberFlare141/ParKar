@@ -1,8 +1,4 @@
-CREATE DATABASE IF NOT EXISTS `ParKar`
-  CHARACTER SET utf8mb4
-  COLLATE utf8mb4_unicode_ci;
 
-USE `ParKar`;
 
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
@@ -28,8 +24,11 @@ CREATE TABLE `users` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `name` varchar(255) NOT NULL,
   `email` varchar(255) NOT NULL,
+  `google_id` varchar(100) DEFAULT NULL,
+  `google_avatar` varchar(512) DEFAULT NULL,
   `email_verified_at` timestamp NULL DEFAULT NULL,
-  `password` varchar(255) NOT NULL,
+  `password` varchar(255) DEFAULT NULL,
+  `auth_provider` enum('local','google','both') NOT NULL DEFAULT 'local',
   `role` enum('student','teacher','admin') NOT NULL DEFAULT 'student',
   `university_id` varchar(50) DEFAULT NULL,
   `department` varchar(100) DEFAULT NULL,
@@ -39,7 +38,8 @@ CREATE TABLE `users` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `users_email_unique` (`email`)
+  UNIQUE KEY `users_email_unique` (`email`),
+  UNIQUE KEY `users_google_id_unique` (`google_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `password_reset_tokens` (

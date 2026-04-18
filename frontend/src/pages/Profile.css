@@ -31,6 +31,10 @@
   @apply text-rose-300;
 }
 
+.profile-feedback.success {
+  @apply text-emerald-300;
+}
+
 .profile-grid {
   @apply mb-6 grid grid-cols-1 gap-4 lg:grid-cols-[1.2fr_1fr];
 }
@@ -55,8 +59,52 @@
   @apply my-1.5 text-slate-300;
 }
 
+.user-details {
+  @apply w-full;
+}
+
 .id-text {
   @apply font-bold text-teal-300;
+}
+
+.profile-edit-form {
+  @apply flex w-full flex-col gap-4;
+}
+
+.profile-field {
+  @apply flex flex-col gap-2;
+}
+
+.profile-field span {
+  @apply text-sm font-semibold text-slate-300;
+}
+
+.profile-field input {
+  @apply rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-slate-100 outline-none transition;
+}
+
+.profile-field input:focus {
+  @apply border-teal-400/50 ring-2 ring-teal-400/20;
+}
+
+.profile-readonly-grid {
+  @apply grid grid-cols-1 gap-3 rounded-2xl border border-white/8 bg-slate-950/45 p-4 md:grid-cols-2;
+}
+
+.profile-readonly-grid p {
+  @apply my-0 flex flex-col gap-1;
+}
+
+.profile-readonly-grid span {
+  @apply text-xs uppercase tracking-[0.14em] text-slate-500;
+}
+
+.profile-readonly-grid strong {
+  @apply text-sm text-slate-200;
+}
+
+.profile-save-btn {
+  @apply self-start;
 }
 
 .permit-card {
@@ -119,10 +167,6 @@
   @apply text-slate-400;
 }
 
-.vehicle-actions {
-  @apply mt-4 flex gap-2.5;
-}
-
 .action-btn {
   @apply cursor-pointer rounded-xl border-0 px-4 py-2.5 font-semibold transition duration-200 ease-out;
 }
@@ -147,6 +191,10 @@
   @apply bg-rose-500 text-white hover:bg-rose-400;
 }
 
+.vehicle-empty-state {
+  @apply p-5 text-slate-300;
+}
+
 @media (max-width: 640px) {
   .profile-page {
     @apply px-3 pb-8 pt-5;
@@ -165,12 +213,12 @@
     @apply flex-col items-center text-center;
   }
 
+  .profile-save-btn {
+    @apply w-full self-stretch;
+  }
+
   .permit-list p,
   .vehicle-card p {
     @apply flex-col gap-1;
-  }
-
-  .vehicle-actions {
-    @apply flex-col;
   }
 }

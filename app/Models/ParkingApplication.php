@@ -31,6 +31,10 @@ class ParkingApplication extends Model
         'nda_signed',
     ];
 
+    protected $casts = [
+        'nda_signed' => 'boolean',
+    ];
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

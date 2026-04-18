@@ -6,6 +6,7 @@ use App\Models\AuditLog;
 use App\Models\Document;
 use App\Models\ParkingApplication;
 use App\Models\ParkingTicket;
+use App\Support\NotificationPublisher;
 use DateTimeInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,6 +19,8 @@ use Throwable;
 
 class AdminParkingApplicationController extends Controller
 {
+    private const RENEWAL_NOTE_PREFIX = 'Renewal Meta:';
+
     public function index(Request $request): JsonResponse
     {
         $perPage = min(max((int) $request->integer('per_page', 15), 1), 100);
@@ -146,6 +149,26 @@ class AdminParkingApplicationController extends Controller
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
 
+        NotificationPublisher::createForUser(
+            (int) $updated->user_id,
+            $this->isRenewalApplication($updated) && $updated->status === 'approved'
+                ? 'Renewal approved'
+                : ($this->isRenewalApplication($updated) ? 'Renewal rejected' : ($updated->status === 'approved' ? 'Application approved' : 'Application rejected')),
+            $updated->status === 'approved'
+                ? (
+                    $this->isRenewalApplication($updated)
+                        ? "Your renewal request #{$updated->id} has been approved."
+                        : "Your parking application #{$updated->id} has been approved."
+                )
+                    . ($updated->parkingTicket?->ticket_id ? " Ticket ID: {$updated->parkingTicket->ticket_id}." : '')
+                : (
+                    $this->isRenewalApplication($updated)
+                        ? "Your renewal request #{$updated->id} was rejected."
+                        : "Your parking application #{$updated->id} was rejected."
+                )
+                    . ($updated->admin_comment ? " Reason: {$updated->admin_comment}" : '')
+        );
+
         return response()->json([
             'message' => $updated->status === 'approved'
                 ? 'Application approved and ticket issued.'
@@ -215,12 +238,17 @@ class AdminParkingApplicationController extends Controller
 
     private function toApplicationSummary(ParkingApplication $application): array
     {
+        $renewalMeta = $this->parseRenewalMetadata($application->notes);
+
         return [
             'id' => $application->id,
             'status' => $application->status,
             'created_at' => $this->toIsoString($application->created_at),
             'reviewed_at' => $this->toIsoString($application->reviewed_at),
             'admin_comment' => $application->admin_comment,
+            'is_renewal' => $renewalMeta['is_renewal'],
+            'renewal_source_application_id' => $renewalMeta['renewal_source_application_id'],
+            'renewal_sequence' => $renewalMeta['renewal_sequence'],
             'applicant' => [
                 'name' => $application->applicant_name,
                 'university_id' => $application->applicant_university_id,
@@ -252,6 +280,44 @@ class AdminParkingApplicationController extends Controller
                 'parking_slot' => $application->parkingTicket->parking_slot,
             ] : null,
         ];
+    }
+
+    private function parseRenewalMetadata(?string $notes): array
+    {
+        $normalized = trim((string) $notes);
+        if ($normalized === '' || !str_starts_with($normalized, self::RENEWAL_NOTE_PREFIX)) {
+            return [
+                'is_renewal' => false,
+                'renewal_source_application_id' => null,
+                'renewal_sequence' => null,
+            ];
+        }
+
+        $metadata = [
+            'is_renewal' => true,
+            'renewal_source_application_id' => null,
+            'renewal_sequence' => null,
+        ];
+
+        foreach (preg_split('/\R+/', $normalized) as $line) {
+            if (!str_contains($line, '=')) {
+                continue;
+            }
+
+            [$key, $value] = array_map('trim', explode('=', $line, 2));
+            if ($key === 'source_application_id') {
+                $metadata['renewal_source_application_id'] = (int) $value;
+            } elseif ($key === 'renewal_sequence') {
+                $metadata['renewal_sequence'] = (int) $value;
+            }
+        }
+
+        return $metadata;
+    }
+
+    private function isRenewalApplication(ParkingApplication $application): bool
+    {
+        return (bool) $this->parseRenewalMetadata($application->notes)['is_renewal'];
     }
 
     private function toDocumentSummary(Document $document): array

@@ -1,10 +1,11 @@
 
 docker compose down -v
 docker compose up -d --build
-docker exec -it parkar_app php artisan key:generate
+docker compose exec app php artisan key:generate
 
 MySQL now uses database-first import from `schema.sql`.
 When the `mysql_data` volume is empty, Docker imports it automatically.
+If Docker was previously using another database setup, remove the old volume with `docker compose down -v` so MySQL can initialize cleanly.
 
  
 If you change `schema.sql`, rebuild the database with:
@@ -14,7 +15,7 @@ docker compose up -d --build
 docker compose up -d   for regular run
 
 
-Now check: http://localhost:8000/api/health
+Now check: http://localhost:18080/api/health
 
 cd f:\ParKar\ParKar\parkar-ai-service
 docker build -t parkar-ai .

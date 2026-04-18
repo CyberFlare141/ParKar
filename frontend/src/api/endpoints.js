@@ -2,11 +2,15 @@ export const ENDPOINTS = {
   HEALTH: "/health",
   REGISTER: "/auth/register",
   LOGIN: "/auth/login",
+  GOOGLE_REDIRECT: "/auth/google/redirect",
   VERIFY_OTP: "/auth/verify-otp",
   RESEND_OTP: "/auth/resend-otp",
   ME: "/auth/me",
   PROFILE: "/auth/me",
+  UPDATE_PROFILE: "/auth/me",
   LOGOUT: "/auth/logout",
+  NOTIFICATIONS: "/notifications",
+  NOTIFICATION_READ: (notificationId) => `/notifications/${notificationId}/read`,
   CONTACT: "/contact",
   ITEMS: "/items",
   ADMIN_DASHBOARD: "/admin/dashboard",
@@ -20,4 +24,10 @@ export const ENDPOINTS = {
   STUDENT_SEMESTERS: "/student/semesters",
   STUDENT_DASHBOARD: "/student/dashboard/summary",
   STUDENT_PARKING_APPLICATIONS: "/student/parking-applications",
+  STUDENT_RENEW_PARKING_APPLICATION: (applicationId) =>
+    `/student/parking-applications/${applicationId}/renew`,
+  TEACHER_DASHBOARD: "/teacher/dashboard/summary",
+  TEACHER_PARKING_APPLICATIONS: "/teacher/parking-applications",
+  TEACHER_RENEW_PARKING_APPLICATION: (applicationId) =>
+    `/teacher/parking-applications/${applicationId}/renew`,
 };

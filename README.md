@@ -181,7 +181,13 @@ POST   /api/admin/reject/{id}
 
 1. Run `docker compose down -v`
 2. Run `docker compose up -d --build`
-3. Run `docker exec -it parkar_app php artisan key:generate`
+3. Run `docker compose exec app php artisan key:generate`
 
 MySQL imports `schema.sql` automatically on first startup of a fresh `mysql_data` volume. This replaces the old migration/seeder flow.
+Do not run Laravel migrations for local setup; keep schema changes in `schema.sql`.
+If Docker was previously using another database setup, recreate the database with `docker compose down -v` before bringing the stack back up.
 
+## Railway Backend Deploy
+
+Railway deployment notes for the Laravel backend are in [`RAILWAY_DEPLOY.md`](./RAILWAY_DEPLOY.md).
+The repo now includes a Railway `railway.json` file plus a pre-deploy schema bootstrap for brand-new MySQL databases.

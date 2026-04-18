@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
+import client from "../../api/client";
+import { ENDPOINTS } from "../../api/endpoints";
 import logo from "../../assets/logo.png";
 import { getAuthToken, getAuthUser, getDashboardPathByRole } from "../../auth/session";
 
@@ -51,6 +53,17 @@ const FAQS = [
 ];
 
 const MARQUEE_ITEMS = ["AI Document Verification","Secure Payments","Real-time Notifications","Multi-vehicle Support","Admin Dashboard","Instant Approvals","Permit Management","Audit Logs"];
+const NOTIFICATION_DROPDOWN_LIMIT = 4;
+const NOTIFICATION_POLL_INTERVAL_MS = 20000;
+
+function formatNotificationTime(value) {
+  if (!value) return "";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  return date.toLocaleString();
+}
 
 /* ── Styles ───────────────────────────────────────────────── */
 const STYLES = `
@@ -216,6 +229,11 @@ const STYLES = `
     color: #2dd4bf;
     background: rgba(45,212,191,0.08);
   }
+  #pk-root .pk-notif-btn.active {
+    border-color: #2dd4bf;
+    color: #2dd4bf;
+    background: rgba(45,212,191,0.12);
+  }
   #pk-root .pk-bell-icon {
     width: 18px;
     height: 18px;
@@ -242,6 +260,100 @@ const STYLES = `
     padding: 0 4px;
     line-height: 1;
     border: 1px solid #0b0d10;
+  }
+  #pk-root .pk-notif-menu {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 54px;
+    width: min(360px, calc(100vw - 32px));
+    background: rgba(17,20,24,0.98);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 16px;
+    padding: 10px;
+    box-shadow: 0 18px 38px rgba(0,0,0,0.3);
+    opacity: 0;
+    transform: translateY(-8px);
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+  #pk-root .pk-notif-menu.open {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+  #pk-root .pk-notif-menu-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 10px 12px;
+  }
+  #pk-root .pk-notif-menu-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #f4f7fb;
+  }
+  #pk-root .pk-notif-menu-meta {
+    font-size: 0.75rem;
+    color: #8ca3ab;
+  }
+  #pk-root .pk-notif-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  #pk-root .pk-notif-item {
+    display: block;
+    border-radius: 12px;
+    padding: 12px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    transition: border-color 0.2s ease, background 0.2s ease;
+  }
+  #pk-root .pk-notif-item:hover {
+    border-color: rgba(45,212,191,0.35);
+    background: rgba(45,212,191,0.08);
+  }
+  #pk-root .pk-notif-item.unread {
+    border-color: rgba(45,212,191,0.2);
+    background: rgba(45,212,191,0.06);
+  }
+  #pk-root .pk-notif-item-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+  #pk-root .pk-notif-item-title {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #f4f7fb;
+  }
+  #pk-root .pk-notif-item-time {
+    font-size: 0.72rem;
+    color: #8ca3ab;
+    white-space: nowrap;
+  }
+  #pk-root .pk-notif-item-message {
+    font-size: 0.8rem;
+    color: #c6d1d8;
+    line-height: 1.5;
+  }
+  #pk-root .pk-notif-empty {
+    padding: 20px 14px;
+    border-radius: 12px;
+    border: 1px dashed rgba(255,255,255,0.08);
+    color: #8ca3ab;
+    text-align: center;
+    font-size: 0.82rem;
+  }
+  #pk-root .pk-notif-menu-foot {
+    padding: 10px 6px 4px;
+  }
+  #pk-root .pk-notif-show-all {
+    width: 100%;
+    justify-content: center;
   }
   #pk-root .pk-admin-trigger {
     min-width: 102px;
@@ -336,6 +448,33 @@ const STYLES = `
   #pk-root .pk-drawer .pk-user-chip {
     margin-top: 8px;
     justify-content: center;
+  }
+  #pk-root .pk-mobile-role {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 8px;
+    margin-bottom: 4px;
+    padding: 12px 14px;
+    border: 1px solid rgba(45,212,191,0.18);
+    border-radius: 14px;
+    background: rgba(45,212,191,0.08);
+  }
+  #pk-root .pk-mobile-role-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: #8dded2;
+  }
+  #pk-root .pk-mobile-role-value {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #e2e4ea;
+  }
+  @media (max-width: 860px) {
+    #pk-root .pk-notif-menu {
+      right: 0;
+    }
   }
 
   /* ── Buttons ── */
@@ -983,31 +1122,20 @@ const STYLES = `
 
 /* ── Component ────────────────────────────────────────────── */
 function getUserDisplayName() {
-  try {
-    const rawUser = localStorage.getItem("auth_user");
-    if (!rawUser) return "";
-    const user = JSON.parse(rawUser);
-    return user?.fullName || user?.name || user?.studentId || user?.email || "";
-  } catch {
-    return "";
-  }
-}
-
-function getVehiclePathByRole(role) {
-  if (role === "teacher") return "/teacher/vehicles";
-  if (role === "student") return "/student/vehicles";
-  return null;
+  const user = getAuthUser();
+  return user?.fullName || user?.name || user?.studentId || user?.email || "";
 }
 
 function getApplicationPathByRole(role) {
   if (role === "admin") return "/admin/review";
   if (role === "student") return "/student/apply";
-  if (role === "teacher") return "/teacher/dashboard";
+  if (role === "teacher") return "/teacher/apply";
   return getDashboardPathByRole(role);
 }
 
 function getRenewApplicationPathByRole(role) {
   if (role === "student") return "/student/renew";
+  if (role === "teacher") return "/teacher/renew";
   return null;
 }
 
@@ -1021,8 +1149,8 @@ function getPrimaryActionByRole(role) {
 
   if (role === "teacher") {
     return {
-      to: "/teacher/dashboard",
-      label: "Open Dashboard",
+      to: "/teacher/apply",
+      label: "Apply for Parking",
     };
   }
 
@@ -1077,16 +1205,16 @@ export default function Landing() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [notificationMenuOpen, setNotificationMenuOpen] = useState(false);
+  const [latestNotifications, setLatestNotifications] = useState([]);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [testi,    setTesti]    = useState(0);
-  const [userName, setUserName] = useState(getUserDisplayName());
+  const [, setUserName] = useState(getUserDisplayName());
   const userMenuRef = useRef(null);
+  const authToken = getAuthToken();
   
   const authUser = getAuthUser();
-  const token = getAuthToken();
-  const isLoggedIn = Boolean(token && (authUser || userName));
   const applyPath = getApplicationPathByRole(authUser?.role);
-  const vehiclePath = getVehiclePathByRole(authUser?.role);
-  const unreadNotifications = 0;
   const roleMenuLabel = getRoleMenuLabel(authUser?.role);
   const dashboardPath = getDashboardPathByRole(authUser?.role);
   const renewApplicationPath = getRenewApplicationPathByRole(authUser?.role);
@@ -1095,7 +1223,6 @@ export default function Landing() {
   const navItems = [
     { label: "Features", href: "#pk-features" },
     { label: "How It Works", href: "#pk-how" },
-    { label: "Permits", href: "#pk-permits" },
     { label: "FAQ", href: "#pk-faq" },
     { label: "About Us", to: "/about" },
   ];
@@ -1110,9 +1237,11 @@ export default function Landing() {
     const syncUser = () => setUserName(getUserDisplayName());
     window.addEventListener("storage", syncUser);
     window.addEventListener("focus", syncUser);
+    window.addEventListener("auth-session-changed", syncUser);
     return () => {
       window.removeEventListener("storage", syncUser);
       window.removeEventListener("focus", syncUser);
+      window.removeEventListener("auth-session-changed", syncUser);
     };
   }, []);
 
@@ -1122,10 +1251,56 @@ export default function Landing() {
   }, []);
 
   useEffect(() => {
+    if (!authToken || !authUser?.id) {
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    const loadNotifications = async () => {
+      try {
+        const response = await client.get(ENDPOINTS.NOTIFICATIONS, {
+          params: { limit: NOTIFICATION_DROPDOWN_LIMIT },
+          skipAuthRedirect: true,
+        });
+
+        if (cancelled) {
+          return;
+        }
+
+        setLatestNotifications(Array.isArray(response?.data?.data) ? response.data.data : []);
+        setUnreadNotifications(Number(response?.data?.meta?.unread_count || 0));
+      } catch {
+        if (!cancelled) {
+          setLatestNotifications([]);
+          setUnreadNotifications(0);
+        }
+      }
+    };
+
+    loadNotifications();
+
+    const intervalId = window.setInterval(loadNotifications, NOTIFICATION_POLL_INTERVAL_MS);
+    const handleSessionChange = () => loadNotifications();
+
+    window.addEventListener("auth-session-changed", handleSessionChange);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+      window.removeEventListener("auth-session-changed", handleSessionChange);
+    };
+  }, [authToken, authUser?.id]);
+
+  const visibleNotifications = authToken && authUser?.id ? latestNotifications : [];
+  const visibleUnreadNotifications = authToken && authUser?.id ? unreadNotifications : 0;
+
+  useEffect(() => {
     const handleOutsideClick = (event) => {
       if (!userMenuRef.current) return;
       if (!userMenuRef.current.contains(event.target)) {
         setUserMenuOpen(false);
+        setNotificationMenuOpen(false);
       }
     };
 
@@ -1159,7 +1334,17 @@ export default function Landing() {
         <div className="pk-nav-right">
           {authUser ? (
             <div className="pk-admin-controls" ref={userMenuRef}>
-              <Link to="/notifications" className="pk-notif-btn" aria-label="Notifications">
+              <button
+                type="button"
+                className={`pk-notif-btn${notificationMenuOpen ? " active" : ""}`}
+                aria-label="Notifications"
+                aria-expanded={notificationMenuOpen}
+                aria-haspopup="dialog"
+                onClick={() => {
+                  setNotificationMenuOpen((open) => !open);
+                  setUserMenuOpen(false);
+                }}
+              >
                 <span className="pk-bell-icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24" focusable="false">
                     <path
@@ -1168,15 +1353,68 @@ export default function Landing() {
                     />
                   </svg>
                 </span>
-                {unreadNotifications > 0 ? (
-                  <span className="pk-notif-badge">{unreadNotifications}</span>
+                {visibleUnreadNotifications > 0 ? (
+                  <span className="pk-notif-badge">{visibleUnreadNotifications}</span>
                 ) : null}
-              </Link>
+              </button>
+
+              <div
+                className={`pk-notif-menu${notificationMenuOpen ? " open" : ""}`}
+                role="dialog"
+                aria-label="Latest notifications"
+              >
+                <div className="pk-notif-menu-head">
+                  <div>
+                    <p className="pk-notif-menu-title">Latest notifications</p>
+                    <p className="pk-notif-menu-meta">
+                      {visibleUnreadNotifications > 0
+                        ? `${visibleUnreadNotifications} unread`
+                        : "All caught up"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="pk-notif-list">
+                  {visibleNotifications.length ? (
+                    visibleNotifications.map((item) => (
+                      <div
+                        key={item.id}
+                        className={`pk-notif-item${item.is_read ? "" : " unread"}`}
+                      >
+                        <div className="pk-notif-item-head">
+                          <p className="pk-notif-item-title">{item.title}</p>
+                          <span className="pk-notif-item-time">
+                            {formatNotificationTime(item.created_at)}
+                          </span>
+                        </div>
+                        <p className="pk-notif-item-message">{item.message}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="pk-notif-empty">
+                      No notifications to show right now.
+                    </div>
+                  )}
+                </div>
+
+                <div className="pk-notif-menu-foot">
+                  <Link
+                    to="/notifications"
+                    className="btn btn-ghost pk-notif-show-all"
+                    onClick={() => setNotificationMenuOpen(false)}
+                  >
+                    Show all
+                  </Link>
+                </div>
+              </div>
 
               <button
                 type="button"
                 className="btn btn-teal pk-admin-trigger"
-                onClick={() => setUserMenuOpen((open) => !open)}
+                onClick={() => {
+                  setUserMenuOpen((open) => !open);
+                  setNotificationMenuOpen(false);
+                }}
                 aria-expanded={userMenuOpen}
                 aria-haspopup="menu"
               >
@@ -1219,6 +1457,10 @@ export default function Landing() {
         )}
         {authUser ? (
           <>
+            <div className="pk-mobile-role">
+              <span className="pk-mobile-role-label">Logged in as</span>
+              <span className="pk-mobile-role-value">{roleMenuLabel}</span>
+            </div>
             <Link to="/profile" onClick={() => setMenuOpen(false)} className="btn btn-ghost" style={{ marginTop: "8px" }}>
               Profile
             </Link>
@@ -1399,9 +1641,6 @@ export default function Landing() {
         <span className="pk-sec-tag" style={{ position: "relative", zIndex: 1 }}>Get Started</span>
         <h2 className="pk-cta-title">Ready to ditch<br /><em>the paperwork?</em></h2>
         <p className="pk-cta-sub">Join thousands of students and staff who park smarter every day.</p>
-        <Link to="/register" className="btn btn-teal" style={{ fontSize: "1rem", padding: "15px 36px", borderRadius: "12px", position: "relative", zIndex: 1 }}>
-          Apply Now — It's Free →
-        </Link>
       </section>
 
       {/* ══ FOOTER ══ */}

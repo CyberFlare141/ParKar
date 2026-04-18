@@ -6,7 +6,6 @@ import { clearAuthSession, getAuthUser } from "../../auth/session";
 import {
   getRenewalBadgeClass,
   getRenewalMeta,
-  saveRenewalRecord,
 } from "./renewalUtils";
 import "./RenewApplication.css";
 
@@ -106,6 +105,16 @@ export default function RenewApplication() {
   const { applicationId } = useParams();
   const navigate = useNavigate();
   const authUser = getAuthUser();
+  const role = String(authUser?.role || "student").toLowerCase();
+  const isTeacher = role === "teacher";
+  const dashboardEndpoint = isTeacher ? ENDPOINTS.TEACHER_DASHBOARD : ENDPOINTS.STUDENT_DASHBOARD;
+  const dashboardPath = isTeacher ? "/teacher/dashboard" : "/student/dashboard";
+  const applicationsPath = isTeacher ? "/teacher/dashboard" : "/student/history";
+  const renewalEndpoint = isTeacher
+    ? ENDPOINTS.TEACHER_RENEW_PARKING_APPLICATION
+    : ENDPOINTS.STUDENT_RENEW_PARKING_APPLICATION;
+  const renewLabel = isTeacher ? "Faculty Renewal" : "Student Renewal";
+  const renewTitle = isTeacher ? "Renew Faculty Application" : "Renew Application";
   const [application, setApplication] = useState(null);
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -127,7 +136,7 @@ export default function RenewApplication() {
         setLoading(true);
         setError("");
 
-        const response = await client.get(ENDPOINTS.STUDENT_DASHBOARD, {
+        const response = await client.get(dashboardEndpoint, {
           skipAuthRedirect: true,
         });
         const payload = response?.data?.data || null;
@@ -162,7 +171,7 @@ export default function RenewApplication() {
     return () => {
       isMounted = false;
     };
-  }, [applicationId]);
+  }, [applicationId, dashboardEndpoint]);
 
   const renewalMeta = useMemo(
     () => getRenewalMeta(application, authUser?.id),
@@ -230,7 +239,7 @@ export default function RenewApplication() {
     setFeedback("");
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
 
     if (!application || !renewalMeta.canRenew) {
@@ -244,39 +253,44 @@ export default function RenewApplication() {
       return;
     }
 
-    const changedDocuments = Object.entries(replaceFiles)
-      .filter(([, file]) => Boolean(file))
-      .map(([key, file]) => ({
-        key,
-        label: formatLabel(key),
-        name: file.name,
-      }));
+    try {
+      setIsSubmitting(true);
+      setError("");
+      setFeedback("");
 
-    const addedDocuments = Object.entries(addFiles)
-      .filter(([, file]) => Boolean(file))
-      .map(([key, file]) => ({
-        key,
-        label: formatLabel(key),
-        name: file.name,
-      }));
+      const formData = new FormData();
+      formData.append("document_mode", documentMode);
+      formData.append("acknowledged", acknowledged ? "1" : "0");
+      formData.append("review_note", reviewNote);
 
-    setIsSubmitting(true);
+      [...Object.entries(replaceFiles), ...Object.entries(addFiles)].forEach(([key, file]) => {
+        if (file) {
+          formData.append(`documents[${key}]`, file);
+        }
+      });
 
-    saveRenewalRecord(authUser?.id, application, {
-      documentMode,
-      changedDocuments,
-      addedDocuments,
-      keptDocumentIds: existingDocuments.map((document) => document.id).filter(Boolean),
-      acknowledgement: acknowledged,
-      reviewNote,
-    });
+      const response = await client.post(renewalEndpoint(application.id), formData, {
+        skipAuthRedirect: true,
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
 
-    navigate("/student/history", {
-      replace: true,
-      state: {
-        renewalFeedback: `Application #${application.id} renewed successfully. Validity has been reset for another 6 months.`,
-      },
-    });
+      navigate(applicationsPath, {
+        replace: true,
+        state: {
+          renewalFeedback:
+            response?.data?.message ||
+            `Application #${application.id} renewal submitted successfully.`,
+        },
+      });
+    } catch (submitError) {
+      setError(
+        submitError?.response?.data?.message || "Failed to submit renewal. Please try again.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -286,11 +300,11 @@ export default function RenewApplication() {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="space-y-3">
               <span className="inline-flex items-center rounded-full border border-teal-400/25 bg-teal-400/10 px-4 py-1.5 text-[0.72rem] font-semibold uppercase tracking-[0.24em] text-teal-300">
-                Student Renewal
+                {renewLabel}
               </span>
               <div>
                 <h1 className="text-4xl font-semibold leading-tight text-white sm:text-5xl">
-                  Renew Application
+                  {renewTitle}
                 </h1>
                 <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-300/80 sm:text-base">
                   Review your current permit details, keep existing documents if nothing has
@@ -301,9 +315,9 @@ export default function RenewApplication() {
             </div>
 
             <div className="flex flex-wrap gap-3">
-              <NavigationPill to="/student/dashboard" label="Dashboard" />
+              <NavigationPill to={dashboardPath} label="Dashboard" />
               <NavigationPill to="/profile" label="Profile" />
-              <NavigationPill to="/student/history" label="Applications" />
+              <NavigationPill to={applicationsPath} label="Applications" />
               <NavigationPill
                 label="Logout"
                 onClick={() => {

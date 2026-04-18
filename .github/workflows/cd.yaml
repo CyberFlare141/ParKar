@@ -1,0 +1,47 @@
+name: CD
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cd-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy-backend:
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event.workflow_run.conclusion == 'success' &&
+        (
+          github.event.workflow_run.head_branch == 'Dev' ||
+          github.event.workflow_run.head_branch == 'main'
+        )
+      )
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Trigger backend Render deploy
+        run: curl -fsS -X POST "https://api.render.com/deploy/srv-d7bporjuibrs73a3pbr0?key=0h0tvlSrfd4"
+
+  deploy-frontend:
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event.workflow_run.conclusion == 'success' &&
+        (
+          github.event.workflow_run.head_branch == 'Dev' ||
+          github.event.workflow_run.head_branch == 'main'
+        )
+      )
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Trigger frontend Render deploy
+        run: curl -fsS -X POST "https://api.render.com/deploy/srv-d7bqfvs9c44c73bht79g?key=pKtTH0navzo"

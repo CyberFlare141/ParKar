@@ -36,23 +36,28 @@ import AIAnalysis from "./pages/Admin/AIAnalysis";
 import Reports from "./pages/Admin/Reports";
 import AuditLogs from "./pages/Admin/AuditLogs";
 import BackButtonLayout from "./components/BackButtonLayout";
+import GoogleAuthCallbackHandler from "./components/GoogleAuthCallbackHandler";
+import NotificationPopup from "./components/NotificationPopup";
 
 function App() {
   return (
-    <Routes>
-      {/* Landing */}
-      <Route path="/" element={<Landing />} />
-      <Route element={<BackButtonLayout />}>
-        <Route path="/about" element={<About />} />
-        <Route path="/contact" element={<Contact />} />
-        <Route
-          path="/profile"
-          element={
-            <ProtectedRoute>
-              <Profile />
-            </ProtectedRoute>
-          }
-        />
+    <>
+      <NotificationPopup />
+      <Routes>
+        {/* Landing */}
+        <Route path="/" element={<Landing />} />
+        <Route path="/auth/google/success" element={<GoogleAuthCallbackHandler />} />
+        <Route element={<BackButtonLayout />}>
+          <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
 
         {/* Auth */}
         <Route path="/login" element={<Login />} />
@@ -145,6 +150,30 @@ function App() {
           }
         />
         <Route
+          path="/teacher/apply"
+          element={
+            <ProtectedRoute allowedRoles={["teacher"]}>
+              <ApplyParking />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/teacher/renew"
+          element={
+            <ProtectedRoute allowedRoles={["teacher"]}>
+              <RenewalOverview />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/teacher/renew/:applicationId"
+          element={
+            <ProtectedRoute allowedRoles={["teacher"]}>
+              <RenewApplication />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/teacher/vehicles"
           element={
             <ProtectedRoute allowedRoles={["teacher"]}>
@@ -210,11 +239,12 @@ function App() {
             </ProtectedRoute>
           }
         />
-      </Route>
+        </Route>
 
-      {/* 404 */}
-      <Route path="*" element={<Navigate to="/" />} />
-    </Routes>
+        {/* 404 */}
+        <Route path="*" element={<Navigate to="/" />} />
+      </Routes>
+    </>
   );
 }
 
